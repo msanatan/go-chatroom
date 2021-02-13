@@ -16,3 +16,6 @@ vendor/
 
 # Ignore env file
 .env
+
+# Ignore build file
+go-chatroom
