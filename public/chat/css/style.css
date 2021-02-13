@@ -1,0 +1,71 @@
+body,
+html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#app {
+  height: 100%;
+}
+
+.chat {
+  height: 100%;
+  margin-top: auto;
+  margin-bottom: auto;
+  padding: 0;
+}
+
+.card {
+  height: inherit;
+  background-color: #ffffff;
+  border-radius: 0%;
+}
+
+.msg_head{
+    color: #000000;
+    text-align: center;
+}
+
+.msg_card_body {
+  overflow-y: auto;
+  background-color: #db784e;
+}
+
+.card-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #8B8B8B;
+}
+
+.card-footer {
+  border-radius: 0 0 15px 15px;
+  background-color: #ffffff;
+  border-top: 1px solid #8B8B8B;
+}
+
+.container {
+  align-content: center;
+}
+
+.type_msg {
+  color: white;
+  height: 60px;
+  overflow-y: auto;
+}
+
+.send_btn {
+  border-radius: 0 10px 10px 0;
+  background-color: #8B8B8B;
+  color: white;
+  cursor: pointer;
+}
+
+.msg_cotainer {
+  margin-top: auto;
+  margin-bottom: auto;
+  margin-left: 10px;
+  border-radius: 15px;
+  background-color: #4EC1DB;
+  padding: 10px;
+  position: relative;
+}
