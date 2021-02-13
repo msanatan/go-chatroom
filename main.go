@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
@@ -16,8 +17,16 @@ func main() {
 	wsServer := websockets.NewServer(logger)
 	go wsServer.Run()
 
+	// Setup default WS Client config
+	defaultClientConfig := &websockets.ClientConfig{
+		WriteWait:      10 * time.Second,
+		PongWait:       60 * time.Second,
+		PingPeriod:     (60 * time.Second * 9) / 10,
+		MaxMessageSize: 10000,
+	}
+
 	r := mux.NewRouter()
-	r.HandleFunc("/ws", websockets.ServeWs(wsServer, logger))
+	r.HandleFunc("/ws", websockets.ServeWs(wsServer, defaultClientConfig, logger))
 
 	port := os.Getenv("PORT")
 	if port == "" {
