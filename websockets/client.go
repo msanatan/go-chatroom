@@ -41,12 +41,15 @@ func NewClient(conn *websocket.Conn, server *Server, config *ClientConfig, logge
 }
 
 func (client *Client) disconnect() {
+	logger := client.logger.WithField("method", "disconnect")
 	client.server.deregister <- client
 	close(client.send)
 	client.conn.Close()
+	logger.Debug("disconnecting client")
 }
 
 func (client *Client) readPump() {
+	logger := client.logger.WithField("method", "readPump")
 	defer func() {
 		client.disconnect()
 	}()
@@ -63,7 +66,7 @@ func (client *Client) readPump() {
 		_, jsonMessage, err := client.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("unexpected close error: %v", err)
+				logger.Errorf("unexpected close error: %s", err.Error())
 			}
 			break
 		}
@@ -74,6 +77,7 @@ func (client *Client) readPump() {
 }
 
 func (client *Client) writePump() {
+	logger := client.logger.WithField("method", "writePump")
 	ticker := time.NewTicker(client.config.PingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -91,6 +95,7 @@ func (client *Client) writePump() {
 
 			w, err := client.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
+				logger.Errorf("error creating next writer: %s", err.Error())
 				return
 			}
 			w.Write(message)
@@ -108,6 +113,7 @@ func (client *Client) writePump() {
 		case <-ticker.C:
 			client.conn.SetWriteDeadline(time.Now().Add(client.config.WriteWait))
 			if err := client.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				logger.Errorf("unable to send ping: %s", err.Error())
 				return
 			}
 		}
