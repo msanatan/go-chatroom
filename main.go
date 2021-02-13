@@ -27,6 +27,7 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/ws", websockets.ServeWs(wsServer, defaultClientConfig, logger))
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 
 	port := os.Getenv("PORT")
 	if port == "" {
