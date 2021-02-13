@@ -47,6 +47,11 @@ func (server *Server) Run() {
 	}
 }
 
+// ClientCount returns the number of connected clients
+func (server *Server) ClientCount() int {
+	return len(server.clients)
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
