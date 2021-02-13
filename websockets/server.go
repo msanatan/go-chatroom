@@ -58,7 +58,8 @@ func ServeWs(server *Server, logger *log.Entry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			logger.Fatalf("error trying to setup websocket connection: %q", err.Error())
+			logger.Errorf("error trying to setup websocket connection: %q", err.Error())
+			return
 		}
 
 		logger.Debug("Creating new websocket client")
