@@ -12,6 +12,7 @@ type Server struct {
 	clients    map[*Client]bool
 	register   chan *Client
 	deregister chan *Client
+	broadcast  chan []byte
 	logger     *log.Entry
 }
 
@@ -58,7 +59,7 @@ var upgrader = websocket.Upgrader{
 }
 
 // ServeWs runs a websocket client
-func ServeWs(server *Server, logger *log.Entry) http.HandlerFunc {
+func ServeWs(server *Server, clientConfig *ClientConfig, logger *log.Entry) http.HandlerFunc {
 	logger = logger.WithField("method", "ServeWs")
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
@@ -68,7 +69,10 @@ func ServeWs(server *Server, logger *log.Entry) http.HandlerFunc {
 		}
 
 		logger.Debug("Creating new websocket client")
-		client := NewClient(conn, server, logger, "main")
+		client := NewClient(conn, server, clientConfig, logger, "main")
+		go client.writePump()
+		go client.readPump()
+
 		server.register <- client
 	}
 }

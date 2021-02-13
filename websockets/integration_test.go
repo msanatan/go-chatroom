@@ -4,6 +4,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -12,6 +13,12 @@ import (
 )
 
 var testLogger = log.New().WithField("env", "test")
+var testClientConfig = &websockets.ClientConfig{
+	WriteWait:      10 * time.Second,
+	PongWait:       60 * time.Second,
+	PingPeriod:     (60 * time.Second * 9) / 10,
+	MaxMessageSize: 10000,
+}
 
 func Test_RegisterAndDeregisterClients(t *testing.T) {
 	wsServer := websockets.NewServer(testLogger)
@@ -22,7 +29,7 @@ func Test_RegisterAndDeregisterClients(t *testing.T) {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/", websockets.ServeWs(wsServer, testLogger))
+	r.HandleFunc("/", websockets.ServeWs(wsServer, testClientConfig, testLogger))
 
 	testServer := httptest.NewServer(r)
 	defer testServer.Close()
@@ -35,10 +42,21 @@ func Test_RegisterAndDeregisterClients(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
+	defer wsConn.Close()
 
 	if wsServer.ClientCount() != 1 {
 		t.Errorf("was expecting the client count to be 1 but it was %d", wsServer.ClientCount())
 	}
 
-	wsConn.Close()
+	err = wsConn.WriteControl(websocket.CloseMessage, []byte(`{"message":"goodbye"}`), time.Time{})
+	if err != nil {
+		t.Errorf("could not send close message: %s", err.Error())
+	}
+
+	// Sleep to ensure test client gets message
+	time.Sleep(time.Second)
+
+	if wsServer.ClientCount() != 0 {
+		t.Errorf("was expecting the client count to be 0 but it was %d", wsServer.ClientCount())
+	}
 }
