@@ -22,6 +22,7 @@ func NewServer(logger *log.Entry) *Server {
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		deregister: make(chan *Client),
+		broadcast:  make(chan []byte),
 		logger:     logger,
 	}
 }
@@ -36,6 +37,12 @@ func (server *Server) deregisterClient(client *Client) {
 	}
 }
 
+func (server *Server) broadcastToClients(message []byte) {
+	for client := range server.clients {
+		client.send <- message
+	}
+}
+
 // Run executes our websocket server to accpet its various requests
 func (server *Server) Run() {
 	for {
@@ -44,6 +51,8 @@ func (server *Server) Run() {
 			server.registerClient(client)
 		case client := <-server.deregister:
 			server.deregisterClient(client)
+		case message := <-server.broadcast:
+			server.broadcastToClients(message)
 		}
 	}
 }
