@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/msanatan/go-chatroom/service"
+	"github.com/msanatan/go-chatroom/app/service"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -4,7 +4,7 @@
 package service_test
 
 import (
-	"github.com/msanatan/go-chatroom/service"
+	"github.com/msanatan/go-chatroom/app/service"
 	"sync"
 )
 

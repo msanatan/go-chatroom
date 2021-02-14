@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/msanatan/go-chatroom/service"
+	"github.com/msanatan/go-chatroom/app/service"
 	log "github.com/sirupsen/logrus"
 )
 

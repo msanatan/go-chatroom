@@ -3,7 +3,7 @@ package service_test
 import (
 	"testing"
 
-	"github.com/msanatan/go-chatroom/service"
+	"github.com/msanatan/go-chatroom/app/service"
 )
 
 func Test_IsValidBotCommand(t *testing.T) {
