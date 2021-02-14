@@ -2,22 +2,34 @@ version: "3"
 
 services:
   rabbit:
-    image: "rabbitmq:3-management-alpine"
-    environment:
-      RABBITMQ_DEFAULT_USER: "rabbitmq"
-      RABBITMQ_DEFAULT_PASS: "rabbitmq"
+    image: rabbitmq:3-management-alpine
+    environment: 
+      RABBITMQ_DEFAULT_USER: rabbitmq
+      RABBITMQ_DEFAULT_PASS: rabbitmq
     ports:
       - "15672:15672"
       - "5672:5672"
+
+  db:
+    image: postgres:13.2
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: db
+      POSTGRES_DB: chatroom
+    ports:
+      - 5432:5432
+    restart: on-failure
 
   bot:
     build:
       context: .
       dockerfile: Dockerfile.bot
     environment:
-      - PORT=8100
-      - LOG_LEVEL=debug
-      - RABBITMQ_CONNECTION=amqp://rabbitmq:rabbitmq@rabbit:5672/
+      PORT: 8100
+      LOG_LEVEL: debug
+      RABBITMQ_CONNECTION: amqp://rabbitmq:rabbitmq@rabbit:5672/
     ports:
       - "8100:8100"
     # Developing on Windows - there's a bug with WSL so volumes don't work
@@ -25,19 +37,17 @@ services:
     #   - .:/app
     depends_on:
       - rabbit
-    links:
-      - rabbit
-    restart: unless-stopped
+    restart: on-failure
 
   app:
     build:
       context: .
       dockerfile: Dockerfile.app
     environment:
-      - PORT=8080
-      - LOG_LEVEL=debug
-      - RABBITMQ_CONNECTION=amqp://rabbitmq:rabbitmq@rabbit:5672/
-      - STATIC_FILES=./app/public
+      PORT: 8080
+      LOG_LEVEL: debug
+      RABBITMQ_CONNECTION: amqp://rabbitmq:rabbitmq@rabbit:5672/
+      STATIC_FILES: ./app/public
     ports:
       - "8080:8080"
     # Developing on Windows - there's a bug with WSL so volumes don't work
@@ -45,6 +55,5 @@ services:
     #   - .:/app
     depends_on:
       - rabbit
-    links:
-      - rabbit
-    restart: unless-stopped
+      - db
+    restart: on-failure
