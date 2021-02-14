@@ -8,12 +8,12 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/msanatan/go-chatroom/app/service"
-	log "github.com/sirupsen/logrus"
+	"github.com/msanatan/go-chatroom/utils"
 )
 
 func main() {
 	logLevel := os.Getenv("LOG_LEVEL")
-	logger := initLogger(logLevel)
+	logger := utils.InitLogger(logLevel, "chatroom")
 	wsServer := service.NewServer(nil, "/", logger)
 	go wsServer.Run()
 
@@ -36,28 +36,4 @@ func main() {
 
 	logger.Debugf("Running at http://localhost:%s", port)
 	logger.Fatal(http.ListenAndServe(":"+port, r))
-}
-
-func initLogger(logLevel string) *log.Entry {
-	parentLogger := log.New()
-	var logrusLevel log.Level
-
-	switch logLevel {
-	case "trace":
-		logrusLevel = log.TraceLevel
-	case "debug":
-		logrusLevel = log.DebugLevel
-	case "info":
-		logrusLevel = log.InfoLevel
-	case "warn":
-		logrusLevel = log.WarnLevel
-	case "error":
-		logrusLevel = log.ErrorLevel
-	default:
-		logrusLevel = log.DebugLevel
-	}
-
-	parentLogger.SetLevel(logrusLevel)
-	parentLogger.SetFormatter(&log.JSONFormatter{})
-	return parentLogger.WithField("application", "go-chatroom")
 }
