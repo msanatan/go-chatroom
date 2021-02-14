@@ -42,7 +42,7 @@ func main() {
 		}
 	}
 
-	wsServer = service.NewServer(rabbitMQClient, nil, "/", logger)
+	wsServer = service.NewServer(rabbitMQClient, "/", logger)
 	go wsServer.Run()
 	if rabbitMQClient != nil {
 		go wsServer.ConsumeRMQ()

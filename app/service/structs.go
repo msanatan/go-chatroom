@@ -5,8 +5,3 @@ type MessagePayload struct {
 	Message string `json:"message"`
 	Type    string `json:"type"`
 }
-
-// Bot is an interface for chatbots
-type Bot interface {
-	ProcessCommand(arguments string) (string, error)
-}

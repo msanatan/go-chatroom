@@ -16,17 +16,12 @@ type Server struct {
 	deregister     chan *WSClient
 	broadcast      chan MessagePayload
 	rabbitMQClient *rabbitmq.Client
-	bots           map[string]Bot
 	botSymbol      string
 	logger         *log.Entry
 }
 
 // NewServer instantiates a new server struct
-func NewServer(rabbitMQClient *rabbitmq.Client, bots map[string]Bot, botSymbol string, logger *log.Entry) *Server {
-	if bots == nil {
-		bots = make(map[string]Bot)
-	}
-
+func NewServer(rabbitMQClient *rabbitmq.Client, botSymbol string, logger *log.Entry) *Server {
 	if botSymbol == "" {
 		botSymbol = "/"
 	}
@@ -37,7 +32,6 @@ func NewServer(rabbitMQClient *rabbitmq.Client, bots map[string]Bot, botSymbol s
 		deregister:     make(chan *WSClient),
 		broadcast:      make(chan MessagePayload),
 		rabbitMQClient: rabbitMQClient,
-		bots:           bots,
 		botSymbol:      botSymbol,
 		logger:         logger,
 	}
