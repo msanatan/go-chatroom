@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/msanatan/go-chatroom/app/rabbitmq"
+	"github.com/msanatan/go-chatroom/rabbitmq"
 	log "github.com/sirupsen/logrus"
 )
 

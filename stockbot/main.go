@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/msanatan/go-chatroom/app/rabbitmq"
+	"github.com/msanatan/go-chatroom/rabbitmq"
 	"github.com/msanatan/go-chatroom/stockbot/bot"
 	"github.com/msanatan/go-chatroom/utils"
 	"github.com/streadway/amqp"

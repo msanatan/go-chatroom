@@ -7,8 +7,8 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/msanatan/go-chatroom/app/rabbitmq"
 	"github.com/msanatan/go-chatroom/app/service"
+	"github.com/msanatan/go-chatroom/rabbitmq"
 	"github.com/msanatan/go-chatroom/utils"
 	"github.com/streadway/amqp"
 )
