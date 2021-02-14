@@ -6,6 +6,6 @@ COPY . /app
 
 RUN go build -o chatroom /app/app
 
-CMD [ "/app/chatroom" ]
-
 EXPOSE 8080
+
+CMD [ "/app/chatroom" ]
