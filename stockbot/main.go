@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/msanatan/go-chatroom/rabbitmq"
 	"github.com/msanatan/go-chatroom/stockbot/bot"
 	"github.com/msanatan/go-chatroom/utils"
