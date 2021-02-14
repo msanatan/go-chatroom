@@ -7,9 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var newline = []byte{'\n'}
-var space = []byte{' '}
-
 // ClientConfig contains configuration needed to communicate with the WS server
 type ClientConfig struct {
 	WriteWait      time.Duration
@@ -18,8 +15,8 @@ type ClientConfig struct {
 	MaxMessageSize int64
 }
 
-// Client is the websocket client users will connect to
-type Client struct {
+// WSClient is the websocket client users will connect to
+type WSClient struct {
 	conn   *websocket.Conn
 	server *Server
 	send   chan MessagePayload
@@ -28,9 +25,9 @@ type Client struct {
 	room   string
 }
 
-// NewClient instantiates a new client
-func NewClient(conn *websocket.Conn, server *Server, config *ClientConfig, logger *log.Entry, room string) *Client {
-	return &Client{
+// NewWSClient instantiates a new websocket client
+func NewWSClient(conn *websocket.Conn, server *Server, config *ClientConfig, logger *log.Entry, room string) *WSClient {
+	return &WSClient{
 		conn:   conn,
 		server: server,
 		config: config,
@@ -40,7 +37,7 @@ func NewClient(conn *websocket.Conn, server *Server, config *ClientConfig, logge
 	}
 }
 
-func (client *Client) disconnect() {
+func (client *WSClient) disconnect() {
 	logger := client.logger.WithField("method", "disconnect")
 	client.server.deregister <- client
 	close(client.send)
@@ -48,7 +45,7 @@ func (client *Client) disconnect() {
 	logger.Debug("disconnecting client")
 }
 
-func (client *Client) readMessages() {
+func (client *WSClient) readMessages() {
 	logger := client.logger.WithField("method", "readMessages")
 	defer func() {
 		client.disconnect()
@@ -77,7 +74,7 @@ func (client *Client) readMessages() {
 
 }
 
-func (client *Client) writeMessages() {
+func (client *WSClient) writeMessages() {
 	logger := client.logger.WithField("method", "writeMessages")
 	ticker := time.NewTicker(client.config.PingPeriod)
 	defer func() {

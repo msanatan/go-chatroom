@@ -9,9 +9,9 @@ import (
 
 // Server is our hub for all WS clients
 type Server struct {
-	clients    map[*Client]bool
-	register   chan *Client
-	deregister chan *Client
+	clients    map[*WSClient]bool
+	register   chan *WSClient
+	deregister chan *WSClient
 	broadcast  chan MessagePayload
 	logger     *log.Entry
 }
@@ -19,19 +19,19 @@ type Server struct {
 // NewServer instantiates a new server struct
 func NewServer(logger *log.Entry) *Server {
 	return &Server{
-		clients:    make(map[*Client]bool),
-		register:   make(chan *Client),
-		deregister: make(chan *Client),
+		clients:    make(map[*WSClient]bool),
+		register:   make(chan *WSClient),
+		deregister: make(chan *WSClient),
 		broadcast:  make(chan MessagePayload),
 		logger:     logger,
 	}
 }
 
-func (server *Server) registerClient(client *Client) {
+func (server *Server) registerClient(client *WSClient) {
 	server.clients[client] = true
 }
 
-func (server *Server) deregisterClient(client *Client) {
+func (server *Server) deregisterClient(client *WSClient) {
 	if _, ok := server.clients[client]; ok {
 		delete(server.clients, client)
 	}
@@ -78,7 +78,7 @@ func ServeWs(server *Server, clientConfig *ClientConfig, logger *log.Entry) http
 		}
 
 		logger.Debug("Creating new websocket client")
-		client := NewClient(conn, server, clientConfig, logger, "main")
+		client := NewWSClient(conn, server, clientConfig, logger, "main")
 
 		go client.writeMessages()
 		go client.readMessages()
