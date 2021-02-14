@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -112,11 +113,13 @@ func (server *Server) ConsumeRMQ() {
 	}
 
 	logger.Debug("waiting on messages from RabbitMQ")
-	for d := range msgs {
-		logger.Debugf("received message: %s", string(d.Body))
-		message := MessagePayload{
-			Message: string(d.Body),
-			Type:    d.Type,
+	for msg := range msgs {
+		logger.Debugf("received message: %s", string(msg.Body))
+		var message MessagePayload
+		err = json.Unmarshal(msg.Body, &message)
+		if err != nil {
+			logger.Errorf("message not in correct format: %s", err.Error())
+			continue
 		}
 
 		server.broadcast <- message
