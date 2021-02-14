@@ -1,0 +1,22 @@
+version: '3'
+services:
+  rabbitmq:
+    image: "rabbitmq:3-management-alpine"
+    environment:
+      RABBITMQ_DEFAULT_USER: "rabbitmq"
+      RABBITMQ_DEFAULT_PASS: "rabbitmq"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    environment: 
+      - PORT=8080
+    # Developing on Windows - there's a bug with WSL so volumes don't work
+    # volumes:
+    #   - .:/app
+    depends_on:
+      - rabbitmq
