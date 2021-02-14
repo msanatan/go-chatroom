@@ -1,4 +1,4 @@
-package websockets
+package service
 
 import (
 	"time"

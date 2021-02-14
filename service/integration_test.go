@@ -1,4 +1,4 @@
-package websockets_test
+package service_test
 
 import (
 	"net/http/httptest"
@@ -8,12 +8,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/msanatan/go-chatroom/websockets"
+	"github.com/msanatan/go-chatroom/service"
 	log "github.com/sirupsen/logrus"
 )
 
 var testLogger = log.New().WithField("env", "test")
-var testClientConfig = &websockets.ClientConfig{
+var testClientConfig = &service.ClientConfig{
 	WriteWait:      10 * time.Second,
 	PongWait:       60 * time.Second,
 	PingPeriod:     (60 * time.Second * 9) / 10,
@@ -21,7 +21,7 @@ var testClientConfig = &websockets.ClientConfig{
 }
 
 func Test_ClientsCommunicate(t *testing.T) {
-	wsServer := websockets.NewServer(testLogger)
+	wsServer := service.NewServer(testLogger)
 	go wsServer.Run()
 
 	if wsServer.ClientCount() != 0 {
@@ -29,7 +29,7 @@ func Test_ClientsCommunicate(t *testing.T) {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/", websockets.ServeWs(wsServer, testClientConfig, testLogger))
+	r.HandleFunc("/", service.ServeWs(wsServer, testClientConfig, testLogger))
 
 	testServer := httptest.NewServer(r)
 	defer testServer.Close()
@@ -59,7 +59,7 @@ func Test_ClientsCommunicate(t *testing.T) {
 	}
 
 	// Send message with client
-	err = wsConn2.WriteJSON(websockets.MessagePayload{Message: "Hello"})
+	err = wsConn2.WriteJSON(service.MessagePayload{Message: "Hello"})
 	if err != nil {
 		t.Errorf("could not send text message: %s", err.Error())
 	}

@@ -7,18 +7,18 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/msanatan/go-chatroom/websockets"
+	"github.com/msanatan/go-chatroom/service"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
 	logLevel := os.Getenv("LOG_LEVEL")
 	logger := initLogger(logLevel)
-	wsServer := websockets.NewServer(logger)
+	wsServer := service.NewServer(logger)
 	go wsServer.Run()
 
 	// Setup default WS Client config
-	defaultClientConfig := &websockets.ClientConfig{
+	defaultClientConfig := &service.ClientConfig{
 		WriteWait:      10 * time.Second,
 		PongWait:       60 * time.Second,
 		PingPeriod:     (60 * time.Second * 9) / 10,
@@ -26,7 +26,7 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/ws", websockets.ServeWs(wsServer, defaultClientConfig, logger))
+	r.HandleFunc("/ws", service.ServeWs(wsServer, defaultClientConfig, logger))
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 
 	port := os.Getenv("PORT")
