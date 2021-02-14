@@ -35,7 +35,7 @@ func main() {
 		}
 		defer ch.Close()
 
-		rabbitMQClient = rabbitmq.NewClient(ch, logger)
+		rabbitMQClient = rabbitmq.NewClient(ch, "command_queue", "response_queue", logger)
 		err = rabbitMQClient.QueueDeclare()
 		if err != nil {
 			logger.Fatalf("could not declare queues: %s", err.Error())
@@ -56,9 +56,22 @@ func main() {
 		MaxMessageSize: 10000,
 	}
 
+	staticFiles := os.Getenv("STATIC_FILES")
+	if staticFiles == "" {
+		staticFiles = "./public/"
+	}
+
 	r := mux.NewRouter()
 	r.HandleFunc("/ws", service.ServeWs(wsServer, defaultClientConfig, logger))
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticFiles)))
+
+	// Keep a log of all incoming requests
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger.Debug(r.RequestURI)
+			next.ServeHTTP(w, r)
+		})
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
