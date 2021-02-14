@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -77,10 +78,22 @@ func (client *WSClient) readMessages() {
 		if client.IsValidBotCommand(message.Message) {
 			if client.server.rabbitMQClient != nil {
 				botCommand, argument := client.ExtractCommandAndArgs(message.Message)
-				err = client.server.rabbitMQClient.Publish(rabbitmq.BotMessagePayload{
+				botPayload := rabbitmq.BotMessagePayload{
 					Command:  botCommand,
 					Argument: argument,
-				})
+				}
+
+				botPayloadJSON, err := json.Marshal(botPayload)
+				if err != nil {
+					logger.Errorf("strangely enough, could not convert the bot error response to JSON: %s", err.Error())
+					client.server.broadcast <- MessagePayload{
+						Message: "Could not send a valid request to the bot. Please review your command",
+						Type:    "error",
+					}
+					continue
+				}
+
+				client.server.rabbitMQClient.Publish(botPayloadJSON)
 			} else {
 				client.server.broadcast <- MessagePayload{
 					Message: "This chatroom isn't configured to work with bots",
