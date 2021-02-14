@@ -1,9 +1,11 @@
 package service
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/msanatan/go-chatroom/app/rabbitmq"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -70,6 +72,22 @@ func (client *WSClient) readMessages() {
 		}
 
 		client.server.broadcast <- message
+
+		// Check if message should be handled by a bot
+		if client.IsValidBotCommand(message.Message) {
+			if client.server.rabbitMQClient != nil {
+				botCommand, argument := client.ExtractCommandAndArgs(message.Message)
+				err = client.server.rabbitMQClient.Publish(rabbitmq.BotMessagePayload{
+					Command:  botCommand,
+					Argument: argument,
+				})
+			} else {
+				client.server.broadcast <- MessagePayload{
+					Message: "This chatroom isn't configured to work with bots",
+					Type:    "error",
+				}
+			}
+		}
 	}
 
 }
@@ -104,4 +122,22 @@ func (client *WSClient) writeMessages() {
 			}
 		}
 	}
+}
+
+// IsValidBotCommand verifies if a message should be treated as a bot command
+func (client *WSClient) IsValidBotCommand(message string) bool {
+	return len(message) > 0 &&
+		strings.HasPrefix(message, client.server.botSymbol) &&
+		!strings.HasPrefix(message, client.server.botSymbol+client.server.botSymbol)
+}
+
+// ExtractCommandAndArgs parses a bot command and any arguments it may have
+func (client *WSClient) ExtractCommandAndArgs(message string) (string, string) {
+	if strings.Contains(message, "=") {
+		commandString := message[strings.Index(message, client.server.botSymbol)+1 : strings.Index(message, "=")]
+		args := strings.SplitN(message, "=", 2)[1]
+		return commandString, args
+	}
+
+	return strings.SplitN(message, client.server.botSymbol, 2)[1], ""
 }
