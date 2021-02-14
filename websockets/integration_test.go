@@ -55,11 +55,11 @@ func Test_ClientsCommunicate(t *testing.T) {
 	defer wsConn2.Close()
 
 	if wsServer.ClientCount() != 2 {
-		t.Errorf("was expecting the client count to be 1 but it was %d", wsServer.ClientCount())
+		t.Errorf("was expecting the client count to be 2 but it was %d", wsServer.ClientCount())
 	}
 
 	// Send message with client
-	err = wsConn2.WriteMessage(websocket.TextMessage, []byte(`Hello`))
+	err = wsConn2.WriteJSON(websockets.MessagePayload{Message: "Hello"})
 	if err != nil {
 		t.Errorf("could not send text message: %s", err.Error())
 	}
@@ -73,6 +73,6 @@ func Test_ClientsCommunicate(t *testing.T) {
 	time.Sleep(time.Second)
 
 	if wsServer.ClientCount() != 1 {
-		t.Errorf("was expecting the client count to be 0 but it was %d", wsServer.ClientCount())
+		t.Errorf("was expecting the client count to be 1 but it was %d", wsServer.ClientCount())
 	}
 }

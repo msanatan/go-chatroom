@@ -22,7 +22,7 @@ type ClientConfig struct {
 type Client struct {
 	conn   *websocket.Conn
 	server *Server
-	send   chan []byte
+	send   chan MessagePayload
 	config *ClientConfig
 	logger *log.Entry
 	room   string
@@ -34,7 +34,7 @@ func NewClient(conn *websocket.Conn, server *Server, config *ClientConfig, logge
 		conn:   conn,
 		server: server,
 		config: config,
-		send:   make(chan []byte, 256),
+		send:   make(chan MessagePayload),
 		logger: logger,
 		room:   room,
 	}
@@ -48,8 +48,8 @@ func (client *Client) disconnect() {
 	logger.Debug("disconnecting client")
 }
 
-func (client *Client) readPump() {
-	logger := client.logger.WithField("method", "readPump")
+func (client *Client) readMessages() {
+	logger := client.logger.WithField("method", "readMessages")
 	defer func() {
 		client.disconnect()
 	}()
@@ -63,7 +63,8 @@ func (client *Client) readPump() {
 
 	// Start endless read loop, waiting for messages from client
 	for {
-		_, jsonMessage, err := client.conn.ReadMessage()
+		var message MessagePayload
+		err := client.conn.ReadJSON(&message)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				logger.Errorf("unexpected close error: %s", err.Error())
@@ -71,13 +72,13 @@ func (client *Client) readPump() {
 			break
 		}
 
-		client.server.broadcast <- jsonMessage
+		client.server.broadcast <- message
 	}
 
 }
 
-func (client *Client) writePump() {
-	logger := client.logger.WithField("method", "writePump")
+func (client *Client) writeMessages() {
+	logger := client.logger.WithField("method", "writeMessages")
 	ticker := time.NewTicker(client.config.PingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -93,21 +94,9 @@ func (client *Client) writePump() {
 				return
 			}
 
-			w, err := client.conn.NextWriter(websocket.TextMessage)
+			err := client.conn.WriteJSON(message)
 			if err != nil {
-				logger.Errorf("error creating next writer: %s", err.Error())
-				return
-			}
-			w.Write(message)
-
-			// Attach queued chat messages to the current websocket message.
-			n := len(client.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-client.send)
-			}
-
-			if err := w.Close(); err != nil {
+				logger.Errorf("error sending message: %s", err.Error())
 				return
 			}
 		case <-ticker.C:

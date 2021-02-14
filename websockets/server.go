@@ -12,7 +12,7 @@ type Server struct {
 	clients    map[*Client]bool
 	register   chan *Client
 	deregister chan *Client
-	broadcast  chan []byte
+	broadcast  chan MessagePayload
 	logger     *log.Entry
 }
 
@@ -22,7 +22,7 @@ func NewServer(logger *log.Entry) *Server {
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		deregister: make(chan *Client),
-		broadcast:  make(chan []byte),
+		broadcast:  make(chan MessagePayload),
 		logger:     logger,
 	}
 }
@@ -37,7 +37,7 @@ func (server *Server) deregisterClient(client *Client) {
 	}
 }
 
-func (server *Server) broadcastToClients(message []byte) {
+func (server *Server) broadcastToClients(message MessagePayload) {
 	for client := range server.clients {
 		client.send <- message
 	}
@@ -67,7 +67,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 4096,
 }
 
-// ServeWs runs a websocket client
+// ServeWs registers a WS client
 func ServeWs(server *Server, clientConfig *ClientConfig, logger *log.Entry) http.HandlerFunc {
 	logger = logger.WithField("method", "ServeWs")
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -79,8 +79,9 @@ func ServeWs(server *Server, clientConfig *ClientConfig, logger *log.Entry) http
 
 		logger.Debug("Creating new websocket client")
 		client := NewClient(conn, server, clientConfig, logger, "main")
-		go client.writePump()
-		go client.readPump()
+
+		go client.writeMessages()
+		go client.readMessages()
 
 		server.register <- client
 	}
