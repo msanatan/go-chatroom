@@ -14,7 +14,7 @@ import (
 func main() {
 	logLevel := os.Getenv("LOG_LEVEL")
 	logger := initLogger(logLevel)
-	wsServer := service.NewServer(logger)
+	wsServer := service.NewServer(nil, "/", logger)
 	go wsServer.Run()
 
 	// Setup default WS Client config
