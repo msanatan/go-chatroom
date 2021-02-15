@@ -10,7 +10,7 @@ import (
 
 // ChatroomDB allows the app to neatly interface with GORM
 type ChatroomDB struct {
-	db     *gorm.DB
+	DB     *gorm.DB
 	logger *log.Entry
 }
 
@@ -25,7 +25,7 @@ func NewChatroomDB(db *sql.DB, logger *log.Entry) (*ChatroomDB, error) {
 	}
 
 	return &ChatroomDB{
-		db:     gormDB,
+		DB:     gormDB,
 		logger: logger,
 	}, nil
 }
@@ -33,7 +33,7 @@ func NewChatroomDB(db *sql.DB, logger *log.Entry) (*ChatroomDB, error) {
 // Migrate runs the migrations on the GORM models
 func (c *ChatroomDB) Migrate(db *gorm.DB) error {
 	//run gorm migrations
-	err := c.db.AutoMigrate(&User{})
+	err := c.DB.AutoMigrate(&User{})
 	if err != nil {
 		return err
 	}
