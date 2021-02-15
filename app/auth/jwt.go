@@ -3,6 +3,8 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -49,4 +51,14 @@ var VerifyJWT = func(token, secret string) (string, error) {
 	}
 
 	return "", errors.New("Failed to verify JWT and extract the subject")
+}
+
+// GetTokenFromRequest extracts the token from an HTTP request
+func GetTokenFromRequest(r *http.Request) string {
+	bearerHeader := r.Header.Get("Authorization")
+	if len(strings.Split(bearerHeader, " ")) == 2 {
+		return strings.Split(bearerHeader, " ")[1]
+	}
+
+	return ""
 }
