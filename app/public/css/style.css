@@ -9,6 +9,11 @@ html {
   height: 100%;
 }
 
+.form {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
 .chat {
   height: 100%;
   margin-top: auto;

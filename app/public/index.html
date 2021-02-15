@@ -15,7 +15,44 @@
 
 <body>
     <div id="app">
-        <div class="container-fluid h-100">
+        <!-- Login view -->
+        <div class="container-fluid h-100" v-if="!ws">
+            <div class="col-12 form">
+                <h2>Registered users</h2>
+                <input v-model="user.username" size="sm" class="form-control username" placeholder="username"></input>
+                <input v-model="user.password" type="password" class="form-control password"
+                    placeholder="password"></input>
+                <div class="input-group-append">
+                    <span class="input-group-text" @click="login">
+                        Login
+                    </span>
+                </div>
+            </div>
+
+            <div class="col-12 form">
+                <h2>New users</h2>
+                <input v-model="user.email" type="email" class="form-control email" placeholder="email"></input>
+                <input v-model="user.username" class="form-control username" placeholder="username"></input>
+                <input v-model="user.password" type="password" class="form-control password"
+                    placeholder="password"></input>
+                <div class="input-group-append">
+                    <span class="input-group-text" @click="register">
+                        Register
+                    </span>
+                </div>
+            </div>
+
+            <div class="alert alert-danger" role="alert" v-show="authError">
+                {{authError}}
+            </div>
+
+            <div class="alert alert-success" role="alert" v-show="registerSuccess">
+                {{registerSuccess}}
+            </div>
+        </div>
+
+        <!-- Chat view -->
+        <div class="container-fluid h-100" v-if="ws != null">
             <div class="row justify-content-center h-100">
                 <div class="col-xl-12 chat">
                     <div class="card">
@@ -52,6 +89,7 @@
 <!-- Load Vue followed by BootstrapVue -->
 <script src="https://unpkg.com/vue"></script>
 <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="js/app.js"></script>
 
 </html>

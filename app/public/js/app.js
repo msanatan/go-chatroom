@@ -4,16 +4,46 @@ var app = new Vue({
         ws: null,
         serverUrl: "ws://localhost:8080/api/ws",
         messages: [],
-        newMessage: ""
+        newMessage: "",
+        user: {
+            username: "",
+            password: "",
+            token: ""
+        },
+        authError: "",
+        registerSuccess: ""
     },
     mounted: function () {
         this.connectToWebsocket();
     },
     methods: {
+        async login() {
+            try {
+                const response = await axios.post("http://" + location.host + '/login', this.user);
+                this.user.token = response.data.token;
+                this.connectToWebsocket();
+            } catch (e) {
+                this.authError = e.response.data.error;
+                console.log(e);
+                console.log(this.authError);
+            }
+        },
+        async register() {
+            try {
+                const response = await axios.post("http://" + location.host + '/register', this.user);
+                this.registerSuccess = "Successfully registered! Please log in";
+            } catch (e) {
+                this.authError = e.response.data.error;
+                console.log(e);
+                console.log(this.authError);
+            }
+        },
         connectToWebsocket() {
-            this.ws = new WebSocket(this.serverUrl);
-            this.ws.addEventListener('open', (event) => { this.onWebsocketOpen(event) });
-            this.ws.addEventListener('message', (event) => { console.log(event); this.handleNewMessage(event) });
+            if (this.user.token !== "") {
+                this.ws = new WebSocket(this.serverUrl + "?bearer=" + this.user.token);
+                this.ws.addEventListener('open', (event) => { this.onWebsocketOpen(event) });
+                this.ws.addEventListener('message', (event) => { console.log(event); this.handleNewMessage(event) });
+            }
         },
         onWebsocketOpen() {
             console.log("Connected to chat room");
