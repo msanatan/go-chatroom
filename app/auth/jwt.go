@@ -55,6 +55,12 @@ var VerifyJWT = func(token, secret string) (string, error) {
 
 // GetTokenFromRequest extracts the token from an HTTP request
 func GetTokenFromRequest(r *http.Request) string {
+	keys := r.URL.Query()
+	token := keys.Get("bearer")
+	if token != "" {
+		return token
+	}
+
 	bearerHeader := r.Header.Get("Authorization")
 	if len(strings.Split(bearerHeader, " ")) == 2 {
 		return strings.Split(bearerHeader, " ")[1]
