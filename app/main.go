@@ -51,6 +51,11 @@ func main() {
 		logger.Fatalf("could not connect to Postgres DB: %s", err.Error())
 	}
 
+	err = dbClient.Migrate()
+	if err != nil {
+		logger.Fatalf("could not complete DB migrations: %s", err.Error())
+	}
+
 	rabbitConnection := os.Getenv("RABBITMQ_CONNECTION")
 	if rabbitConnection == "" {
 		logger.Error("No RabbitMQ connection string provided, will not setup connection")
