@@ -1,10 +1,12 @@
 package models
 
 import (
+	"errors"
 	"html"
 	"strings"
 	"time"
 
+	"github.com/badoux/checkmail"
 	"github.com/jinzhu/gorm"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/crypto/bcrypt"
@@ -46,4 +48,27 @@ func (u *User) Init() {
 	u.Email = html.EscapeString(strings.TrimSpace(u.Email))
 	u.CreatedAt = time.Now()
 	u.UpdatedAt = time.Now()
+}
+
+// Validate checks if a user model is correctly formed
+func (u *User) Validate(context string) error {
+	if u.Password == "" {
+		return errors.New("password is missing")
+	}
+
+	if u.Email == "" {
+		return errors.New("email is missing")
+	}
+
+	if err := checkmail.ValidateFormat(u.Email); err != nil {
+		return errors.New("email is invalid")
+	}
+
+	if context == "create" {
+		if u.Username == "" {
+			return errors.New("username is missing")
+		}
+	}
+
+	return nil
 }
