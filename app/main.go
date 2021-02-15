@@ -1,12 +1,18 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
+	_ "github.com/lib/pq"
+	"github.com/msanatan/go-chatroom/app/auth"
+	"github.com/msanatan/go-chatroom/app/models"
 	"github.com/msanatan/go-chatroom/app/service"
 	"github.com/msanatan/go-chatroom/rabbitmq"
 	"github.com/msanatan/go-chatroom/utils"
@@ -18,6 +24,32 @@ func main() {
 	logger := utils.InitLogger(logLevel, "chatroom")
 	var wsServer *service.Server
 	var rabbitMQClient *rabbitmq.Client
+
+	// Setup Postgres database
+	var dbPort int
+	dbPortString := os.Getenv("POSTGRES_PORT")
+	if dbPortString == "" {
+		dbPort = 5432
+	} else {
+		var convErr error
+		dbPort, convErr = strconv.Atoi(dbPortString)
+		if convErr != nil {
+			logger.Fatalf("%s is not a valid Postgres port number", dbPortString)
+		}
+	}
+	connectionString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("POSTGRES_HOST"), dbPort, os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"), os.Getenv("POSTGRES_DB"))
+
+	db, err := sql.Open("postgres", connectionString)
+	if err != nil {
+		logger.Fatalf("could not connect to Postgres DB: %s", err.Error())
+	}
+
+	dbClient, err := models.NewChatroomDB(db, logger)
+	if err != nil {
+		logger.Fatalf("could not connect to Postgres DB: %s", err.Error())
+	}
 
 	rabbitConnection := os.Getenv("RABBITMQ_CONNECTION")
 	if rabbitConnection == "" {
@@ -61,8 +93,20 @@ func main() {
 		staticFiles = "./public/"
 	}
 
+	// Create auth client
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		logger.Fatalf("Missing JWT_SECRET env var")
+	}
+	authClient := auth.NewClient(dbClient, jwtSecret, logger)
+
 	r := mux.NewRouter()
-	r.HandleFunc("/ws", service.ServeWs(wsServer, defaultClientConfig, logger))
+	r.HandleFunc("/login", authClient.Login).Methods("POST")
+	r.HandleFunc("/register", authClient.CreateUser).Methods("POST")
+
+	protected := r.PathPrefix("/api").Subrouter()
+	protected.HandleFunc("/ws", service.ServeWs(wsServer, defaultClientConfig, logger))
+	protected.Use(authClient.IsAuthenticated)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticFiles)))
 
 	// Keep a log of all incoming requests
