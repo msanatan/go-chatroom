@@ -48,6 +48,12 @@ services:
       LOG_LEVEL: debug
       RABBITMQ_CONNECTION: amqp://rabbitmq:rabbitmq@rabbit:5672/
       STATIC_FILES: ./app/public
+      JWT_SECRET: dxNtgxk3DYlGau3TyzY8
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: db
+      POSTGRES_DB: chatroom
     ports:
       - "8080:8080"
     # Developing on Windows - there's a bug with WSL so volumes don't work
