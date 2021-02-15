@@ -13,14 +13,18 @@ var app = new Vue({
         authError: "",
         registerSuccess: ""
     },
-    mounted: function () {
-        this.connectToWebsocket();
+    mounted() {
+        if (localStorage.token) {
+            this.user.token = localStorage.token;
+            this.connectToWebsocket();
+        }
     },
     methods: {
         async login() {
             try {
                 const response = await axios.post("http://" + location.host + '/login', this.user);
                 this.user.token = response.data.token;
+                localStorage.token = this.user.token;
                 this.connectToWebsocket();
             } catch (e) {
                 this.authError = e.response.data.error;
