@@ -1,11 +1,13 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
 
+	"github.com/msanatan/go-chatroom/app/auth"
 	"github.com/msanatan/go-chatroom/app/models"
 	"github.com/msanatan/go-chatroom/rabbitmq"
 	"github.com/msanatan/go-chatroom/utils"
@@ -121,4 +123,106 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(resp)
+}
+
+// CreateUser is a handler that creates a new user
+func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.WithField("method", "CreateUser")
+	var user models.User
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		logger.Errorf("could not unmarshal request body: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	user.Init()
+	err = user.Validate("create")
+	if err != nil {
+		logger.Errorf("user is not valid: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	createdUser := s.chatroomDB.DB.Create(user)
+	if createdUser.Error != nil {
+		logger.Errorf("user is not valid: %s", createdUser.Error.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest,
+			errors.New("could not create user at this time, please review your details and try again"))
+		return
+	}
+
+	responsePayload := CreateUserResponse{
+		Username: user.Username,
+		Email:    user.Email,
+	}
+
+	resp, _ := json.Marshal(&responsePayload)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resp)
+}
+
+// Login validates a user, returning a JWT if login was successful
+func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.WithField("method", "Login")
+	var loginRequest LoginPayload
+	err := json.NewDecoder(r.Body).Decode(&loginRequest)
+	if err != nil {
+		logger.Errorf("could not unmarshal request body: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	var user models.User
+	tx := s.chatroomDB.DB.Where("username = ?", loginRequest.Username).First(&user)
+	if tx.Error != nil {
+		logger.Errorf("could not find user: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusNotFound, errors.New("no user found with username: "+loginRequest.Username))
+		return
+	}
+
+	if loginRequest.Password == user.Password {
+		logger.Debug("login successful, returning token")
+		token, err := auth.GenerateJWT(user.ID, user.Username, s.jwtSecret, 3600)
+		if err != nil {
+			logger.Errorf("could not generate a JWT: %s", err.Error())
+			utils.WriteErrorResponse(w, http.StatusInternalServerError,
+				errors.New("we're experiencing difficulty completing your login request, please try again at a later time"))
+			return
+		}
+
+		responsePayload := LoginResponse{
+			Token: token,
+		}
+
+		resp, _ := json.Marshal(&responsePayload)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(resp)
+	}
+}
+
+// IsAuthenticated is a middleware that checks if a requester is authenticated or not
+func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := s.logger.WithField("method", "IsAuthenticated")
+		token := auth.GetTokenFromRequest(r)
+		if token == "" {
+			logger.Error("no token found in request")
+			utils.WriteErrorResponse(w, http.StatusUnauthorized, errors.New("you need to be authenticated first"))
+			return
+		}
+
+		userID, username, err := auth.VerifyJWT(token, s.jwtSecret)
+		if err != nil {
+			logger.Errorf("could not verify JWT: %s", err.Error())
+			utils.WriteErrorResponse(w, http.StatusForbidden, err)
+			return
+		}
+
+		r = r.WithContext(context.WithValue(r.Context(), "userId", userID))
+		r = r.WithContext(context.WithValue(r.Context(), "username", username))
+		next.ServeHTTP(w, r)
+	})
 }

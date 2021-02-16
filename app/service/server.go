@@ -19,13 +19,14 @@ type Server struct {
 	broadcast      chan MessagePayload
 	rabbitMQClient *rabbitmq.Client
 	chatroomDB     *models.ChatroomDB
+	jwtSecret      string
 	botSymbol      string
 	logger         *log.Entry
 }
 
 // NewServer instantiates a new server struct
 func NewServer(rabbitMQClient *rabbitmq.Client, chatroomDB *models.ChatroomDB,
-	botSymbol string, logger *log.Entry) *Server {
+	jwtSecret, botSymbol string, logger *log.Entry) *Server {
 	if botSymbol == "" {
 		botSymbol = "/"
 	}
@@ -37,6 +38,7 @@ func NewServer(rabbitMQClient *rabbitmq.Client, chatroomDB *models.ChatroomDB,
 		broadcast:      make(chan MessagePayload),
 		rabbitMQClient: rabbitMQClient,
 		chatroomDB:     chatroomDB,
+		jwtSecret:      jwtSecret,
 		botSymbol:      botSymbol,
 		logger:         logger,
 	}

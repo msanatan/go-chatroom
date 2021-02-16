@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
-	"github.com/msanatan/go-chatroom/app/auth"
 	"github.com/msanatan/go-chatroom/app/models"
 	"github.com/msanatan/go-chatroom/app/service"
 	"github.com/msanatan/go-chatroom/rabbitmq"
@@ -79,7 +78,12 @@ func main() {
 		}
 	}
 
-	wsServer = service.NewServer(rabbitMQClient, dbClient, "/", logger)
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		logger.Fatalf("Missing JWT_SECRET env var")
+	}
+
+	wsServer = service.NewServer(rabbitMQClient, dbClient, jwtSecret, "/", logger)
 	go wsServer.Run()
 	if rabbitMQClient != nil {
 		go wsServer.ConsumeRMQ()
@@ -98,22 +102,15 @@ func main() {
 		staticFiles = "./public/"
 	}
 
-	// Create auth client
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		logger.Fatalf("Missing JWT_SECRET env var")
-	}
-	authClient := auth.NewClient(dbClient, jwtSecret, logger)
-
 	r := mux.NewRouter()
-	r.HandleFunc("/login", authClient.Login).Methods("POST")
-	r.HandleFunc("/register", authClient.CreateUser).Methods("POST")
+	r.HandleFunc("/login", wsServer.Login).Methods("POST")
+	r.HandleFunc("/register", wsServer.CreateUser).Methods("POST")
 
 	protected := r.PathPrefix("/api").Subrouter()
 	protected.HandleFunc("/last-messages", wsServer.GetLastMessages).Methods("GET")
 	protected.HandleFunc("/create-message", wsServer.CreateMessage).Methods("POST")
 	protected.HandleFunc("/ws", service.ServeWs(wsServer, defaultClientConfig, logger))
-	protected.Use(authClient.IsAuthenticated)
+	protected.Use(wsServer.IsAuthenticated)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticFiles)))
 
 	// Keep a log of all incoming requests
