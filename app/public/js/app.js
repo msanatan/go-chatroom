@@ -78,7 +78,7 @@ var app = new Vue({
                 try {
                     // First populate chat with the most recent messages
                     const lastMessages = await this.getLatestMessages();
-                    this.messages = lastMessages.messages.reverse();
+                    this.messages = lastMessages.messages ? lastMessages.messages.reverse() : [];
                     console.log('Retrieved latest messages');
 
                     // Then connect to the websocket server
