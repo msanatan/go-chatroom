@@ -26,7 +26,7 @@ func (m *Message) Init() {
 }
 
 // Validate checks if a message model is correctly formed
-func (m *Message) Validate(context string) error {
+func (m *Message) Validate() error {
 	if m.Text == "" {
 		return errors.New("message text is missing")
 	}
