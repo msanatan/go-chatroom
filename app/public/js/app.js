@@ -28,8 +28,8 @@ var app = new Vue({
                 this.connectToWebsocket();
             } catch (e) {
                 this.authError = e.response.data.error;
-                console.log(e);
-                console.log(this.authError);
+                console.error(e);
+                console.error(this.authError);
             }
         },
         async register() {
@@ -38,35 +38,64 @@ var app = new Vue({
                 this.registerSuccess = "Successfully registered! Please log in";
             } catch (e) {
                 this.authError = e.response.data.error;
-                console.log(e);
-                console.log(this.authError);
+                console.error(e);
+                console.error(this.authError);
             }
         },
-        connectToWebsocket() {
+        async sendMessage() {
+            if (this.newMessage !== "") {
+                try {
+                    const response = await axios.post("http://" + location.host + '/api/create-message',
+                        { message: this.newMessage, type: "user" }, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + this.user.token
+                        }
+                    });
+
+                    this.newMessage = "";
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        },
+        async getLatestMessages() {
+            try {
+                const response = await axios.get("http://" + location.host + '/api/last-messages', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + this.user.token
+                    }
+                });
+
+                return response.data;
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        async connectToWebsocket() {
             if (this.user.token !== "") {
-                this.ws = new WebSocket(this.serverUrl + "?bearer=" + this.user.token);
-                this.ws.addEventListener('open', (event) => { this.onWebsocketOpen(event) });
-                this.ws.addEventListener('message', (event) => { console.log(event); this.handleNewMessage(event) });
+                try {
+                    // First populate chat with the most recent messages
+                    const lastMessages = await this.getLatestMessages();
+                    this.messages = lastMessages.messages.reverse();
+                    console.log('Retrieved latest messages');
+
+                    // Then connect to the websocket server
+                    this.ws = new WebSocket(this.serverUrl + "?bearer=" + this.user.token);
+                    this.ws.addEventListener('open', (event) => { this.onWebsocketOpen(event) });
+                    this.ws.addEventListener('message', (event) => { console.log(event); this.handleNewMessage(event) });
+                } catch (e) {
+                    console.error(e);
+                }
             }
         },
         onWebsocketOpen() {
             console.log("Connected to chat room");
         },
         handleNewMessage(event) {
-            let data = event.data;
-            data = data.split(/\r?\n/);
-
-            for (let i = 0; i < data.length; i++) {
-                let msg = JSON.parse(data[i]);
-                this.messages.push(msg);
-            }
+            let msg = JSON.parse(event.data);
+            this.messages.push(msg);
         },
-        sendMessage() {
-            if (this.newMessage !== "") {
-                this.ws.send(JSON.stringify({ message: this.newMessage }));
-                this.newMessage = "";
-            }
-        }
-
     }
 });
