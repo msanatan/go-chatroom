@@ -15,11 +15,11 @@ import (
 // User is an entity that can log in our system
 type User struct {
 	gorm.Model
-	ID       string    `gorm:"primary_key"`
-	Username string    `gorm:"not null;unique" json:"username"`
-	Email    string    `gorm:"not null;unique" json:"email"`
-	Password string    `gorm:"not null;" json:"password"`
-	Messages []Message `gorm:"many2many:user_messages;"`
+	ID       string `gorm:"primary_key"`
+	Username string `gorm:"not null;unique" json:"username"`
+	Email    string `gorm:"not null;unique" json:"email"`
+	Password string `gorm:"not null;" json:"password"`
+	Messages []Message
 }
 
 // HashPassword encrypts a password so it can be stored safely

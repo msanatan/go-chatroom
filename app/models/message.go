@@ -11,9 +11,10 @@ import (
 // Message saves a message sent from the client
 type Message struct {
 	gorm.Model
-	ID   string `gorm:"primary_key"`
-	Text string `gorm:"not null;" json:"text"`
-	Type string `gorm:"not null;" json:"type"`
+	ID     string `gorm:"primary_key"`
+	Text   string `gorm:"not null;" json:"text"`
+	Type   string `gorm:"not null;" json:"type"`
+	UserID string
 }
 
 // Init prepares a message object to be saved
