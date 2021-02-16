@@ -32,8 +32,12 @@ func NewChatroomDB(db *sql.DB, logger *log.Entry) (*ChatroomDB, error) {
 
 // Migrate runs the migrations on the GORM models
 func (c *ChatroomDB) Migrate() error {
-	//run gorm migrations
-	err := c.DB.AutoMigrate(&User{})
+	err := c.DB.AutoMigrate(&Message{})
+	if err != nil {
+		return err
+	}
+
+	err = c.DB.AutoMigrate(&User{})
 	if err != nil {
 		return err
 	}
