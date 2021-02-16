@@ -15,6 +15,7 @@ type Message struct {
 	Text   string `gorm:"not null;" json:"text"`
 	Type   string `gorm:"not null;" json:"type"`
 	UserID string
+	User   *User
 }
 
 // Init prepares a message object to be saved
