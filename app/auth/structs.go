@@ -17,19 +17,3 @@ type LoginPayload struct {
 type LoginResponse struct {
 	Token string `json:"token"`
 }
-
-// MessageResponse is the objects in the message payload
-// that a user gets upon startup
-type MessageResponse struct {
-	Message  string `json:"message"`
-	Type     string `json:"type"`
-	Username string `json:"username"`
-	Created  string `json:"created"`
-}
-
-// MessagesResponse wrapper around list of messages
-// This envelope is useful for future metadata
-type MessagesResponse struct {
-	Messages []MessageResponse `json:"messages"`
-	Size     int               `json:"size"`
-}

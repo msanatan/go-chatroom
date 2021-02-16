@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/msanatan/go-chatroom/app/models"
+	"github.com/msanatan/go-chatroom/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,21 +27,6 @@ func NewClient(chatroomDB *models.ChatroomDB, jwtSecret string, logger *log.Entr
 	}
 }
 
-// WriteErrorResponse is a helper function that returns JSON response for errors
-func WriteErrorResponse(w http.ResponseWriter, statusCode int, err error) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	encodeError := json.NewEncoder(w).Encode(struct {
-		Error string `json:"error"`
-	}{
-		Error: err.Error(),
-	})
-	if encodeError != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"Something bad happened, contact the system admin"}`))
-	}
-}
-
 // CreateUser is a handler that creates a new user
 func (c *Client) CreateUser(w http.ResponseWriter, r *http.Request) {
 	logger := c.logger.WithField("method", "CreateUser")
@@ -49,7 +34,7 @@ func (c *Client) CreateUser(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		logger.Errorf("could not unmarshal request body: %s", err.Error())
-		WriteErrorResponse(w, http.StatusBadRequest, err)
+		utils.WriteErrorResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -57,14 +42,14 @@ func (c *Client) CreateUser(w http.ResponseWriter, r *http.Request) {
 	err = user.Validate("create")
 	if err != nil {
 		logger.Errorf("user is not valid: %s", err.Error())
-		WriteErrorResponse(w, http.StatusBadRequest, err)
+		utils.WriteErrorResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
 	createdUser := c.chatroomDB.DB.Create(user)
 	if createdUser.Error != nil {
 		logger.Errorf("user is not valid: %s", createdUser.Error.Error())
-		WriteErrorResponse(w, http.StatusBadRequest,
+		utils.WriteErrorResponse(w, http.StatusBadRequest,
 			errors.New("could not create user at this time, please review your details and try again"))
 		return
 	}
@@ -80,36 +65,6 @@ func (c *Client) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-// GetLastMessages pulls the latest messages from the DB
-// Typically used before a client connects to populate the chat
-func (c *Client) GetLastMessages(w http.ResponseWriter, r *http.Request) {
-	logger := c.logger.WithField("method", "GetLastMessages")
-
-	var messages []models.Message
-	tx := c.chatroomDB.DB.Order("created_at desc").Limit(50).Find(&messages)
-	if tx.Error != nil {
-		logger.Errorf("could not pull latest messages: %s", tx.Error.Error())
-		WriteErrorResponse(w, http.StatusBadRequest,
-			errors.New("could not pull the most recent messages from this chat"))
-		return
-	}
-
-	var responsePayload []MessageResponse
-	for _, message := range messages {
-		responsePayload = append(responsePayload, MessageResponse{
-			Message:  message.Text,
-			Type:     message.Type,
-			Username: message.User.Username,
-			Created:  message.CreatedAt.Format(time.RFC1123Z),
-		})
-	}
-
-	resp, _ := json.Marshal(&responsePayload)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
-}
-
 // Login validates a user, returning a JWT if login was successful
 func (c *Client) Login(w http.ResponseWriter, r *http.Request) {
 	logger := c.logger.WithField("method", "Login")
@@ -117,7 +72,7 @@ func (c *Client) Login(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&loginRequest)
 	if err != nil {
 		logger.Errorf("could not unmarshal request body: %s", err.Error())
-		WriteErrorResponse(w, http.StatusBadRequest, err)
+		utils.WriteErrorResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -125,7 +80,7 @@ func (c *Client) Login(w http.ResponseWriter, r *http.Request) {
 	tx := c.chatroomDB.DB.Where("username = ?", loginRequest.Username).First(&user)
 	if tx.Error != nil {
 		logger.Errorf("could not find user: %s", err.Error())
-		WriteErrorResponse(w, http.StatusNotFound, errors.New("no user found with username: "+loginRequest.Username))
+		utils.WriteErrorResponse(w, http.StatusNotFound, errors.New("no user found with username: "+loginRequest.Username))
 		return
 	}
 
@@ -134,7 +89,7 @@ func (c *Client) Login(w http.ResponseWriter, r *http.Request) {
 		token, err := GenerateJWT(user.ID, user.Username, c.jwtSecret, 3600)
 		if err != nil {
 			logger.Errorf("could not generate a JWT: %s", err.Error())
-			WriteErrorResponse(w, http.StatusInternalServerError,
+			utils.WriteErrorResponse(w, http.StatusInternalServerError,
 				errors.New("we're experiencing difficulty completing your login request, please try again at a later time"))
 			return
 		}
@@ -157,14 +112,14 @@ func (c *Client) IsAuthenticated(next http.Handler) http.Handler {
 		token := GetTokenFromRequest(r)
 		if token == "" {
 			logger.Error("no token found in request")
-			WriteErrorResponse(w, http.StatusUnauthorized, errors.New("you need to be authenticated first"))
+			utils.WriteErrorResponse(w, http.StatusUnauthorized, errors.New("you need to be authenticated first"))
 			return
 		}
 
 		userID, username, err := VerifyJWT(token, c.jwtSecret)
 		if err != nil {
 			logger.Errorf("could not verify JWT: %s", err.Error())
-			WriteErrorResponse(w, http.StatusForbidden, err)
+			utils.WriteErrorResponse(w, http.StatusForbidden, err)
 			return
 		}
 

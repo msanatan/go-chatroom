@@ -79,7 +79,7 @@ func main() {
 		}
 	}
 
-	wsServer = service.NewServer(rabbitMQClient, "/", logger)
+	wsServer = service.NewServer(rabbitMQClient, dbClient, "/", logger)
 	go wsServer.Run()
 	if rabbitMQClient != nil {
 		go wsServer.ConsumeRMQ()
@@ -110,6 +110,7 @@ func main() {
 	r.HandleFunc("/register", authClient.CreateUser).Methods("POST")
 
 	protected := r.PathPrefix("/api").Subrouter()
+	protected.HandleFunc("/last-messages", wsServer.GetLastMessages).Methods("GET")
 	protected.HandleFunc("/ws", service.ServeWs(wsServer, defaultClientConfig, logger))
 	protected.Use(authClient.IsAuthenticated)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticFiles)))

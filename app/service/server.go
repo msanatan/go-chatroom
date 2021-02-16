@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/msanatan/go-chatroom/app/models"
 	"github.com/msanatan/go-chatroom/rabbitmq"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,12 +17,14 @@ type Server struct {
 	deregister     chan *WSClient
 	broadcast      chan MessagePayload
 	rabbitMQClient *rabbitmq.Client
+	chatroomDB     *models.ChatroomDB
 	botSymbol      string
 	logger         *log.Entry
 }
 
 // NewServer instantiates a new server struct
-func NewServer(rabbitMQClient *rabbitmq.Client, botSymbol string, logger *log.Entry) *Server {
+func NewServer(rabbitMQClient *rabbitmq.Client, chatroomDB *models.ChatroomDB,
+	botSymbol string, logger *log.Entry) *Server {
 	if botSymbol == "" {
 		botSymbol = "/"
 	}
@@ -32,6 +35,7 @@ func NewServer(rabbitMQClient *rabbitmq.Client, botSymbol string, logger *log.En
 		deregister:     make(chan *WSClient),
 		broadcast:      make(chan MessagePayload),
 		rabbitMQClient: rabbitMQClient,
+		chatroomDB:     chatroomDB,
 		botSymbol:      botSymbol,
 		logger:         logger,
 	}
