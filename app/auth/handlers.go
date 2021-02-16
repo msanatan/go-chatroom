@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/msanatan/go-chatroom/app/models"
 	log "github.com/sirupsen/logrus"
@@ -79,6 +80,36 @@ func (c *Client) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// GetLastMessages pulls the latest messages from the DB
+// Typically used before a client connects to populate the chat
+func (c *Client) GetLastMessages(w http.ResponseWriter, r *http.Request) {
+	logger := c.logger.WithField("method", "GetLastMessages")
+
+	var messages []models.Message
+	tx := c.chatroomDB.DB.Order("created_at desc").Limit(50).Find(&messages)
+	if tx.Error != nil {
+		logger.Errorf("could not pull latest messages: %s", tx.Error.Error())
+		WriteErrorResponse(w, http.StatusBadRequest,
+			errors.New("could not pull the most recent messages from this chat"))
+		return
+	}
+
+	var responsePayload []MessageResponse
+	for _, message := range messages {
+		responsePayload = append(responsePayload, MessageResponse{
+			Message:  message.Text,
+			Type:     message.Type,
+			Username: message.User.Username,
+			Created:  message.CreatedAt.Format(time.RFC1123Z),
+		})
+	}
+
+	resp, _ := json.Marshal(&responsePayload)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
 // Login validates a user, returning a JWT if login was successful
 func (c *Client) Login(w http.ResponseWriter, r *http.Request) {
 	logger := c.logger.WithField("method", "Login")
@@ -100,7 +131,7 @@ func (c *Client) Login(w http.ResponseWriter, r *http.Request) {
 
 	if loginRequest.Password == user.Password {
 		logger.Debug("login successful, returning token")
-		token, err := GenerateJWT(user.ID, c.jwtSecret, 3600)
+		token, err := GenerateJWT(user.ID, user.Username, c.jwtSecret, 3600)
 		if err != nil {
 			logger.Errorf("could not generate a JWT: %s", err.Error())
 			WriteErrorResponse(w, http.StatusInternalServerError,
@@ -130,7 +161,7 @@ func (c *Client) IsAuthenticated(next http.Handler) http.Handler {
 			return
 		}
 
-		userID, err := VerifyJWT(token, c.jwtSecret)
+		userID, username, err := VerifyJWT(token, c.jwtSecret)
 		if err != nil {
 			logger.Errorf("could not verify JWT: %s", err.Error())
 			WriteErrorResponse(w, http.StatusForbidden, err)
@@ -138,6 +169,7 @@ func (c *Client) IsAuthenticated(next http.Handler) http.Handler {
 		}
 
 		r = r.WithContext(context.WithValue(r.Context(), "userId", userID))
+		r = r.WithContext(context.WithValue(r.Context(), "username", username))
 		next.ServeHTTP(w, r)
 	})
 }
