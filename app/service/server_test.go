@@ -55,9 +55,8 @@ func Test_IsValidBotCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		server := service.NewServer(nil, nil, "/", testLogger)
-		client := service.NewWSClient(nil, server, nil, testLogger, "main")
 		t.Run(tt.name, func(t *testing.T) {
-			result := client.IsValidBotCommand(tt.input.message)
+			result := server.IsValidBotCommand(tt.input.message)
 			if result != tt.output {
 				t.Errorf("wrong validation. expected %v but received %v", result, tt.output)
 			}
@@ -104,9 +103,8 @@ func Test_ExtractCommandAndArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		server := service.NewServer(nil, nil, "/", testLogger)
-		client := service.NewWSClient(nil, server, nil, testLogger, "main")
 		t.Run(tt.name, func(t *testing.T) {
-			command, args := client.ExtractCommandAndArgs(tt.input.message)
+			command, args := server.ExtractCommandAndArgs(tt.input.message)
 
 			if command != tt.command {
 				t.Errorf("wrong command returned. expected %q but received %q", tt.command, command)
