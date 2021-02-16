@@ -111,6 +111,7 @@ func main() {
 
 	protected := r.PathPrefix("/api").Subrouter()
 	protected.HandleFunc("/last-messages", wsServer.GetLastMessages).Methods("GET")
+	protected.HandleFunc("/create-message", wsServer.CreateMessage).Methods("POST")
 	protected.HandleFunc("/ws", service.ServeWs(wsServer, defaultClientConfig, logger))
 	protected.Use(authClient.IsAuthenticated)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticFiles)))
