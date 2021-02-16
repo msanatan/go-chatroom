@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/jinzhu/gorm v1.9.16
 	github.com/joho/godotenv v1.3.0
-	github.com/lib/pq v1.9.0 // indirect
+	github.com/lib/pq v1.9.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/segmentio/ksuid v1.0.3
 	github.com/sirupsen/logrus v1.7.0
