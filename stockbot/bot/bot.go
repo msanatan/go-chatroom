@@ -14,12 +14,14 @@ import (
 type MessagePayload struct {
 	Command  string `json:"command"`
 	Argument string `json:"argument"`
+	RoomID   uint   `json:"roomId"`
 }
 
 // ResponsePayload is the data envelope sent from bots
 type ResponsePayload struct {
 	Message string `json:"message"`
 	Type    string `json:"type"`
+	RoomID  uint   `json:"roomId"`
 }
 
 // StockBot makes a 3rd party API call to get stock prices for a company

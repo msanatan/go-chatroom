@@ -4,4 +4,5 @@ package rabbitmq
 type BotMessagePayload struct {
 	Command  string `json:"command"`
 	Argument string `json:"argument"`
+	RoomID   uint   `json:"roomId"`
 }

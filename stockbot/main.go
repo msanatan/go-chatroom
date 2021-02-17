@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -56,12 +57,14 @@ func main() {
 			responseMessage := bot.ResponsePayload{
 				Message: err.Error(),
 				Type:    "error",
+				RoomID:  message.RoomID,
 			}
 
 			payload, err := json.Marshal(responseMessage)
 			if err != nil {
 				logger.Errorf("strangely enough, could not convert the bot error response to JSON: %s", err.Error())
-				rabbitMQClient.Publish([]byte(`{"message":"[Stock Bot] having some technical difficulties...","type":"error"}`))
+				jsonResponse := fmt.Sprintf(`{"message":"[Stock Bot] having some technical difficulties...","type":"error","roomId":%d}`, message.RoomID)
+				rabbitMQClient.Publish([]byte(jsonResponse))
 				continue
 			}
 
@@ -72,12 +75,14 @@ func main() {
 		responseMessage := bot.ResponsePayload{
 			Message: result,
 			Type:    "botResponse",
+			RoomID:  message.RoomID,
 		}
 
 		payload, err := json.Marshal(responseMessage)
 		if err != nil {
 			logger.Errorf("strangely enough, could not convert the bot response to JSON: %s", err.Error())
-			rabbitMQClient.Publish([]byte(`{"message":"[Stock Bot] having some technical difficulties...","type":"error"}`))
+			jsonResponse := fmt.Sprintf(`{"message":"[Stock Bot] having some technical difficulties...","type":"error","roomId":%d}`, message.RoomID)
+			rabbitMQClient.Publish([]byte(jsonResponse))
 			continue
 		}
 
