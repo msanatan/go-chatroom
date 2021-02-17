@@ -107,7 +107,7 @@ func main() {
 	r.HandleFunc("/register", wsServer.CreateUser).Methods("POST")
 
 	protected := r.PathPrefix("/api").Subrouter()
-	protected.HandleFunc("/last-messages", wsServer.GetLastMessages).Methods("GET")
+	protected.HandleFunc("/messages/{roomId}", wsServer.GetLastMessages).Methods("GET")
 	protected.HandleFunc("/create-message", wsServer.CreateMessage).Methods("POST")
 	protected.HandleFunc("/ws", service.ServeWs(wsServer, defaultClientConfig, logger))
 	protected.Use(wsServer.IsAuthenticated)
