@@ -100,6 +100,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		Message:  message.Text,
 		Type:     message.Type,
 		Username: r.Context().Value("username").(string),
+		RoomID:   message.RoomID,
 		Created:  message.CreatedAt.Format(time.RFC1123Z),
 	}
 
@@ -113,6 +114,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 			botPayload := rabbitmq.BotMessagePayload{
 				Command:  botCommand,
 				Argument: argument,
+				RoomID:   message.RoomID,
 			}
 
 			botPayloadJSON, err := json.Marshal(botPayload)
@@ -120,6 +122,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 				logger.Errorf("strangely enough, could not convert the bot error response to JSON: %s", err.Error())
 				s.broadcast <- MessagePayload{
 					Message: "Could not send a valid request to the bot. Please review your command",
+					RoomID:  message.RoomID,
 					Type:    "error",
 				}
 			}
@@ -128,6 +131,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		} else {
 			s.broadcast <- MessagePayload{
 				Message: "This chatroom isn't configured to work with bots",
+				RoomID:  message.RoomID,
 				Type:    "error",
 			}
 		}
@@ -228,6 +232,15 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hashedPassword, err := models.HashPassword(user.Password)
+	if err != nil {
+		logger.Errorf("internal error creating user: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	user.Password = string(hashedPassword)
+
 	createdUser := s.chatroomDB.DB.Create(&user)
 	if createdUser.Error != nil {
 		logger.Errorf("failed to create user: %s", createdUser.Error.Error())
@@ -266,25 +279,30 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if loginRequest.Password == user.Password {
-		logger.Debug("login successful, returning token")
-		token, err := auth.GenerateJWT(int(user.ID), user.Username, s.jwtSecret, 3600)
-		if err != nil {
-			logger.Errorf("could not generate a JWT: %s", err.Error())
-			utils.WriteErrorResponse(w, http.StatusInternalServerError,
-				errors.New("we're experiencing difficulty completing your login request, please try again at a later time"))
-			return
-		}
-
-		responsePayload := LoginResponse{
-			Token: token,
-		}
-
-		resp, _ := json.Marshal(&responsePayload)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(resp)
+	err = models.VerifyPassword(user.Password, loginRequest.Password)
+	if err != nil {
+		logger.Errorf("could not verify password entered: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest, errors.New("wrong password entered for: "+loginRequest.Username))
+		return
 	}
+
+	logger.Debug("login successful, returning token")
+	token, err := auth.GenerateJWT(int(user.ID), user.Username, s.jwtSecret, 3600)
+	if err != nil {
+		logger.Errorf("could not generate a JWT: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusInternalServerError,
+			errors.New("we're experiencing difficulty completing your login request, please try again at a later time"))
+		return
+	}
+
+	responsePayload := LoginResponse{
+		Token: token,
+	}
+
+	resp, _ := json.Marshal(&responsePayload)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
 }
 
 // IsAuthenticated is a middleware that checks if a requester is authenticated or not
