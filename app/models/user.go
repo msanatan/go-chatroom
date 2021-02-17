@@ -31,11 +31,13 @@ func VerifyPassword(hashedPassword, password string) error {
 }
 
 // BeforeSave is a GORM hook that encrypts the password before saving it
-func (u *User) BeforeSave() error {
+// However, it doesn't seem to work...
+func (u *User) BeforeSave(tx *gorm.DB) (err error) {
 	hashedPassword, err := HashPassword(u.Password)
 	if err != nil {
 		return err
 	}
+
 	u.Password = string(hashedPassword)
 	return nil
 }
