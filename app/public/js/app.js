@@ -155,6 +155,9 @@ var app = new Vue({
         },
         handleNewMessage(event) {
             let msg = JSON.parse(event.data);
+            if (this.messages.length === 50) {
+                this.messages.pop();
+            }
             this.messages.push(msg);
         },
         handleSelectRoom(room) {
