@@ -3,8 +3,10 @@ package service
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/msanatan/go-chatroom/app/models"
 	"github.com/msanatan/go-chatroom/rabbitmq"
@@ -13,9 +15,9 @@ import (
 
 // Server is our hub for all WS clients
 type Server struct {
-	clients        map[*WSClient]bool
-	register       chan *WSClient
-	deregister     chan *WSClient
+	rooms          map[uint]map[*WSClient]bool
+	register       chan *Subscription
+	Deregister     chan *Subscription
 	broadcast      chan MessagePayload
 	rabbitMQClient *rabbitmq.Client
 	chatroomDB     *models.ChatroomDB
@@ -32,9 +34,9 @@ func NewServer(rabbitMQClient *rabbitmq.Client, chatroomDB *models.ChatroomDB,
 	}
 
 	return &Server{
-		clients:        make(map[*WSClient]bool),
-		register:       make(chan *WSClient),
-		deregister:     make(chan *WSClient),
+		rooms:          make(map[uint]map[*WSClient]bool),
+		register:       make(chan *Subscription),
+		Deregister:     make(chan *Subscription),
 		broadcast:      make(chan MessagePayload),
 		rabbitMQClient: rabbitMQClient,
 		chatroomDB:     chatroomDB,
@@ -44,19 +46,36 @@ func NewServer(rabbitMQClient *rabbitmq.Client, chatroomDB *models.ChatroomDB,
 	}
 }
 
-func (s *Server) registerClient(client *WSClient) {
-	s.clients[client] = true
+func (s *Server) registerClient(subscription *Subscription) {
+	if s.rooms[subscription.RoomID] == nil {
+		s.rooms[subscription.RoomID] = make(map[*WSClient]bool)
+	}
+
+	s.rooms[subscription.RoomID][subscription.Client] = true
 }
 
-func (s *Server) deregisterClient(client *WSClient) {
-	if _, ok := s.clients[client]; ok {
-		delete(s.clients, client)
+func (s *Server) deregisterClient(subscription *Subscription) {
+	if _, ok := s.rooms[subscription.RoomID][subscription.Client]; ok {
+		delete(s.rooms[subscription.RoomID], subscription.Client)
+		close(subscription.Client.send)
+
+		// Remove room from active connections in memory
+		if len(s.rooms[subscription.RoomID]) == 0 {
+			delete(s.rooms, subscription.RoomID)
+		}
 	}
 }
 
 func (s *Server) broadcastToClients(message MessagePayload) {
-	for client := range s.clients {
-		client.send <- message
+	for client := range s.rooms[message.RoomID] {
+		select {
+		case client.send <- message:
+		default:
+			s.deregisterClient(&Subscription{
+				Client: client,
+				RoomID: message.RoomID,
+			})
+		}
 	}
 }
 
@@ -64,10 +83,10 @@ func (s *Server) broadcastToClients(message MessagePayload) {
 func (s *Server) Run() {
 	for {
 		select {
-		case client := <-s.register:
-			s.registerClient(client)
-		case client := <-s.deregister:
-			s.deregisterClient(client)
+		case subscription := <-s.register:
+			s.registerClient(subscription)
+		case subscription := <-s.Deregister:
+			s.deregisterClient(subscription)
 		case message := <-s.broadcast:
 			s.broadcastToClients(message)
 		}
@@ -75,8 +94,8 @@ func (s *Server) Run() {
 }
 
 // ClientCount returns the number of connected clients
-func (s *Server) ClientCount() int {
-	return len(s.clients)
+func (s *Server) ClientCount(roomID uint) int {
+	return len(s.rooms[roomID])
 }
 
 var upgrader = websocket.Upgrader{
@@ -88,6 +107,13 @@ var upgrader = websocket.Upgrader{
 func ServeWs(server *Server, clientConfig *ClientConfig, logger *log.Entry) http.HandlerFunc {
 	logger = logger.WithField("method", "ServeWs")
 	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		roomID, err := strconv.ParseUint(vars["roomId"], 10, 32)
+		if err != nil {
+			logger.Errorf("room ID is not valid: %s", err.Error())
+			return
+		}
+
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			logger.Errorf("error trying to setup websocket connection: %q", err.Error())
@@ -95,12 +121,16 @@ func ServeWs(server *Server, clientConfig *ClientConfig, logger *log.Entry) http
 		}
 
 		logger.Debug("Creating new websocket client")
-		client := NewWSClient(conn, server, clientConfig, logger, "main")
+		client := NewWSClient(conn, server, clientConfig, logger)
+		subscription := &Subscription{
+			Client: client,
+			RoomID: uint(roomID),
+		}
 
-		go client.writeMessages()
-		go client.readMessages()
+		go subscription.writeMessages()
+		go subscription.readMessages()
 
-		server.register <- client
+		server.register <- subscription
 	}
 }
 

@@ -22,46 +22,51 @@ type WSClient struct {
 	send   chan MessagePayload
 	config *ClientConfig
 	logger *log.Entry
-	room   string
+}
+
+// Subscription is a struct to encapsulates a client connection
+// and the room it's connecting to
+type Subscription struct {
+	Client *WSClient
+	RoomID uint
 }
 
 // NewWSClient instantiates a new websocket client
-func NewWSClient(conn *websocket.Conn, server *Server, config *ClientConfig, logger *log.Entry, room string) *WSClient {
+func NewWSClient(conn *websocket.Conn, server *Server, config *ClientConfig, logger *log.Entry) *WSClient {
 	return &WSClient{
 		conn:   conn,
 		server: server,
 		config: config,
 		send:   make(chan MessagePayload),
 		logger: logger,
-		room:   room,
 	}
 }
 
-func (client *WSClient) disconnect() {
-	logger := client.logger.WithField("method", "disconnect")
-	client.server.deregister <- client
-	close(client.send)
-	client.conn.Close()
+func (s *Subscription) disconnect() {
+	logger := s.Client.logger.WithField("method", "disconnect")
+	s.Client.server.Deregister <- s
+	close(s.Client.send)
+	s.Client.conn.Close()
 	logger.Debug("disconnecting client")
 }
 
-func (client *WSClient) readMessages() {
-	logger := client.logger.WithField("method", "readMessages")
+func (s *Subscription) readMessages() {
+	logger := s.Client.logger.WithField("method", "readMessages")
 	defer func() {
-		client.disconnect()
+		s.disconnect()
 	}()
 
-	client.conn.SetReadLimit(client.config.MaxMessageSize)
-	client.conn.SetReadDeadline(time.Now().Add(client.config.PongWait))
-	client.conn.SetPongHandler(func(string) error {
-		client.conn.SetReadDeadline(time.Now().Add(client.config.PongWait))
+	s.Client.conn.SetReadLimit(s.Client.config.MaxMessageSize)
+	s.Client.conn.SetReadDeadline(time.Now().Add(s.Client.config.PongWait))
+	s.Client.conn.SetPongHandler(func(string) error {
+		s.Client.conn.SetReadDeadline(time.Now().Add(s.Client.config.PongWait))
 		return nil
 	})
 
 	// Start endless read loop, waiting for messages from client
 	for {
 		var message MessagePayload
-		err := client.conn.ReadJSON(&message)
+		err := s.Client.conn.ReadJSON(&message)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				logger.Errorf("unexpected close error: %s", err.Error())
@@ -71,31 +76,31 @@ func (client *WSClient) readMessages() {
 	}
 }
 
-func (client *WSClient) writeMessages() {
-	logger := client.logger.WithField("method", "writeMessages")
-	ticker := time.NewTicker(client.config.PingPeriod)
+func (s *Subscription) writeMessages() {
+	logger := s.Client.logger.WithField("method", "writeMessages")
+	ticker := time.NewTicker(s.Client.config.PingPeriod)
 	defer func() {
 		ticker.Stop()
-		client.conn.Close()
+		s.Client.conn.Close()
 	}()
 	for {
 		select {
-		case message, ok := <-client.send:
-			client.conn.SetWriteDeadline(time.Now().Add(client.config.WriteWait))
+		case message, ok := <-s.Client.send:
+			s.Client.conn.SetWriteDeadline(time.Now().Add(s.Client.config.WriteWait))
 			if !ok {
 				// The WsServer closed the channel.
-				client.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				s.Client.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			err := client.conn.WriteJSON(message)
+			err := s.Client.conn.WriteJSON(message)
 			if err != nil {
 				logger.Errorf("error sending message: %s", err.Error())
 				return
 			}
 		case <-ticker.C:
-			client.conn.SetWriteDeadline(time.Now().Add(client.config.WriteWait))
-			if err := client.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			s.Client.conn.SetWriteDeadline(time.Now().Add(s.Client.config.WriteWait))
+			if err := s.Client.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				logger.Errorf("unable to send ping: %s", err.Error())
 				return
 			}
