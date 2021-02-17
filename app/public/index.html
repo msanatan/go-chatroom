@@ -13,32 +13,58 @@
         crossorigin="anonymous"></script>
 </head>
 
-<body>
+<body class="bg-light">
     <div id="app">
         <!-- Login view -->
-        <div class="container-fluid h-100" v-if="!ws">
-            <div class="col-12 form">
-                <h2>Registered users</h2>
-                <input v-model="user.username" size="sm" class="form-control username" placeholder="username"></input>
-                <input v-model="user.password" type="password" class="form-control password"
-                    placeholder="password"></input>
-                <div class="input-group-append">
-                    <span class="input-group-text" @click="login">
-                        Login
-                    </span>
-                </div>
+        <div class="container h-100" v-if="!ws">
+            <div class="py-5 text-center">
+                <h2>Go Chat!</h2>
+                <p class="lead">This is app allows you to chat with your friends, and get stock prices with a
+                    <code>/stock=</code> command
+                </p>
+                <p>Made with Golang, RabbitMQ, Vue.js and &hearts;</p>
             </div>
+            <div class="row">
+                <div class="col-md-4 order-md-1 form">
+                    <h2 class="mb-3">Registered users</h2>
+                    <div class="row mb-3">
+                        <input v-model="loginDetails.username" size="sm" class="form-control username"
+                            placeholder="username"></input>
+                    </div>
+                    <div class="row mb-3">
+                        <input v-model="loginDetails.password" type="password" class="form-control password"
+                            placeholder="password"></input>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="input-group-append">
+                            <span class="input-group-text" @click="login">
+                                Login
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="col-12 form">
-                <h2>New users</h2>
-                <input v-model="user.email" type="email" class="form-control email" placeholder="email"></input>
-                <input v-model="user.username" class="form-control username" placeholder="username"></input>
-                <input v-model="user.password" type="password" class="form-control password"
-                    placeholder="password"></input>
-                <div class="input-group-append">
-                    <span class="input-group-text" @click="register">
-                        Register
-                    </span>
+                <div class="col-md-4 offset-md-4 order-md-2 form">
+                    <h2 class="mb-3">New users</h2>
+                    <div class="row mb-3">
+                        <input v-model="registrationDetails.email" type="email" class="form-control email"
+                            placeholder="email"></input>
+                    </div>
+                    <div class="row mb-3">
+                        <input v-model="registrationDetails.username" class="form-control username"
+                            placeholder="username"></input>
+                    </div>
+                    <div class="row mb-3">
+                        <input v-model="registrationDetails.password" type="password" class="form-control password"
+                            placeholder="password"></input>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="input-group-append">
+                            <span class="input-group-text" @click="register">
+                                Register
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

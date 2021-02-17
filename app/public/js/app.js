@@ -5,9 +5,17 @@ var app = new Vue({
         serverUrl: "ws://localhost:8080/api/ws",
         messages: [],
         newMessage: "",
-        user: {
+        loginDetails: {
             username: "",
             password: "",
+        },
+        registrationDetails: {
+            email: "",
+            username: "",
+            password: "",
+        },
+        user: {
+            username: "",
             token: ""
         },
         authError: "",
@@ -22,7 +30,8 @@ var app = new Vue({
     methods: {
         async login() {
             try {
-                const response = await axios.post("http://" + location.host + '/login', this.user);
+                const response = await axios.post("http://" + location.host + '/login', this.loginDetails);
+                this.user.username = this.loginDetails.username;
                 this.user.token = response.data.token;
                 localStorage.token = this.user.token;
                 this.connectToWebsocket();
@@ -34,7 +43,7 @@ var app = new Vue({
         },
         async register() {
             try {
-                const response = await axios.post("http://" + location.host + '/register', this.user);
+                const response = await axios.post("http://" + location.host + '/register', this.registrationDetails);
                 this.registerSuccess = "Successfully registered! Please log in";
             } catch (e) {
                 this.authError = e.response.data.error;
