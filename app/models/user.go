@@ -8,14 +8,12 @@ import (
 
 	"github.com/badoux/checkmail"
 	"github.com/jinzhu/gorm"
-	"github.com/segmentio/ksuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // User is an entity that can log in our system
 type User struct {
 	gorm.Model
-	ID       string `gorm:"primary_key"`
 	Username string `gorm:"not null;unique" json:"username"`
 	Email    string `gorm:"not null;unique" json:"email"`
 	Password string `gorm:"not null;" json:"password"`
@@ -44,7 +42,6 @@ func (u *User) BeforeSave() error {
 
 // Init prepares a user object to be saved
 func (u *User) Init() {
-	u.ID = ksuid.New().String()
 	u.Username = html.EscapeString(strings.TrimSpace(u.Username))
 	u.Email = html.EscapeString(strings.TrimSpace(u.Email))
 	u.CreatedAt = time.Now()

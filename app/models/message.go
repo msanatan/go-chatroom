@@ -5,23 +5,21 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/segmentio/ksuid"
 )
 
 // Message saves a message sent from the client
 type Message struct {
 	gorm.Model
-	ID     string `gorm:"primary_key"`
 	Text   string `gorm:"not null;" json:"text"`
 	Type   string `gorm:"not null;" json:"type"`
-	UserID string
+	UserID uint
 	User   *User
-	RoomID string
+	RoomID uint
+	Room   *Room
 }
 
 // Init prepares a message object to be saved
 func (m *Message) Init() {
-	m.ID = ksuid.New().String()
 	m.CreatedAt = time.Now()
 	m.UpdatedAt = time.Now()
 }
