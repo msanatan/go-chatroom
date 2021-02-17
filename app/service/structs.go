@@ -5,6 +5,7 @@ type MessagePayload struct {
 	Message  string `json:"message"`
 	Type     string `json:"type"`
 	Username string `json:"username"`
+	RoomID   string `json:"roomId"`
 	Created  string `json:"created"`
 }
 
@@ -13,6 +14,19 @@ type MessagePayload struct {
 type MessagesPayload struct {
 	Messages []MessagePayload `json:"messages"`
 	Size     int              `json:"size"`
+}
+
+// RoomPayload is the request and response struct for
+// a single room
+type RoomPayload struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// RoomsPayload is a wrapper for a list of rooms
+type RoomsPayload struct {
+	Rooms []RoomPayload `json:"rooms"`
+	Size  int           `json:"size"`
 }
 
 // CreateUserResponse is the payload for a successful created user
