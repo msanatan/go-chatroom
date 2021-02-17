@@ -128,7 +128,7 @@ var app = new Vue({
                     }
                 });
 
-                this.rooms = response.data.rooms;
+                this.rooms = response.data.rooms || [];
             } catch (e) {
                 console.error(e);
             }
