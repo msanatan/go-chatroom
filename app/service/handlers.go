@@ -23,7 +23,7 @@ func (s *Server) GetLastMessages(w http.ResponseWriter, r *http.Request) {
 	roomID := vars["roomId"]
 
 	var messages []models.Message
-	tx := s.chatroomDB.DB.Where("room_id = ?", roomID).Order("created_at desc").Limit(50).Preload("User").Find(&messages)
+	tx := s.chatroomDB.DB.Where("room_id = ?", roomID).Order("created_at asc").Limit(50).Preload("User").Find(&messages)
 	if tx.Error != nil {
 		logger.Errorf("could not pull latest messages: %s", tx.Error.Error())
 		utils.WriteErrorResponse(w, http.StatusBadRequest,
@@ -82,7 +82,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 
 	tx := s.chatroomDB.DB.Create(message)
 	if tx.Error != nil {
-		logger.Errorf("message is not valid: %s", tx.Error.Error())
+		logger.Errorf("failed to create message: %s", tx.Error.Error())
 		utils.WriteErrorResponse(w, http.StatusBadRequest,
 			errors.New("could not create a message at this time, please review your request and try again"))
 		return
@@ -131,6 +131,76 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// CreateRoom is a handler that creates a new room
+func (s *Server) CreateRoom(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.WithField("method", "CreateRoom")
+	var room models.Room
+	err := json.NewDecoder(r.Body).Decode(&room)
+	if err != nil {
+		logger.Errorf("could not unmarshal request body: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	room.Init()
+	err = room.Validate()
+	if err != nil {
+		logger.Errorf("room is not valid: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	createdRoom := s.chatroomDB.DB.Create(room)
+	if createdRoom.Error != nil {
+		logger.Errorf("failed to create room: %s", createdRoom.Error.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest,
+			errors.New("could not create a room at this time, please review your details and try again"))
+		return
+	}
+
+	responsePayload := RoomPayload{
+		ID:   room.ID,
+		Name: room.Name,
+	}
+
+	resp, _ := json.Marshal(&responsePayload)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resp)
+}
+
+// GetRooms returns a list of all rooms
+func (s *Server) GetRooms(w http.ResponseWriter, r *http.Request) {
+	logger := s.logger.WithField("method", "GetRooms")
+
+	var rooms []models.Room
+	tx := s.chatroomDB.DB.Order("created_at asc").Find(&rooms)
+	if tx.Error != nil {
+		logger.Errorf("could not pull list of rooms: %s", tx.Error.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest,
+			errors.New("could not pull the list of rooms"))
+		return
+	}
+
+	var roomsPayload []RoomPayload
+	for _, room := range rooms {
+		roomsPayload = append(roomsPayload, RoomPayload{
+			ID:   room.ID,
+			Name: room.Name,
+		})
+	}
+
+	responsePayload := RoomsPayload{
+		Rooms: roomsPayload,
+		Size:  len(roomsPayload),
+	}
+
+	resp, _ := json.Marshal(&responsePayload)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resp)
+}
+
 // CreateUser is a handler that creates a new user
 func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.WithField("method", "CreateUser")
@@ -152,9 +222,9 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	createdUser := s.chatroomDB.DB.Create(user)
 	if createdUser.Error != nil {
-		logger.Errorf("user is not valid: %s", createdUser.Error.Error())
+		logger.Errorf("failed to create user: %s", createdUser.Error.Error())
 		utils.WriteErrorResponse(w, http.StatusBadRequest,
-			errors.New("could not create user at this time, please review your details and try again"))
+			errors.New("could not create a user at this time, please review your details and try again"))
 		return
 	}
 
