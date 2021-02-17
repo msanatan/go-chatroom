@@ -108,6 +108,8 @@ func main() {
 
 	protected := r.PathPrefix("/api").Subrouter()
 	protected.HandleFunc("/rooms/{roomId}/messages", wsServer.GetLastMessages).Methods("GET")
+	protected.HandleFunc("/rooms", wsServer.GetRooms).Methods("GET")
+	protected.HandleFunc("/rooms", wsServer.CreateRoom).Methods("POST")
 	protected.HandleFunc("/messages", wsServer.CreateMessage).Methods("POST")
 	protected.HandleFunc("/ws/{roomId}", service.ServeWs(wsServer, defaultClientConfig, logger))
 	protected.Use(wsServer.IsAuthenticated)
