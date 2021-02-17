@@ -16,6 +16,7 @@ type Message struct {
 	Type   string `gorm:"not null;" json:"type"`
 	UserID string
 	User   *User
+	RoomID string
 }
 
 // Init prepares a message object to be saved
@@ -33,6 +34,14 @@ func (m *Message) Validate() error {
 
 	if m.Type == "" {
 		return errors.New("message type is missing")
+	}
+
+	if m.UserID == "" {
+		return errors.New("user ID is missing")
+	}
+
+	if m.RoomID == "" {
+		return errors.New("room ID is missing")
 	}
 
 	return nil
