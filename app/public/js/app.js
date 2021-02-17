@@ -16,10 +16,11 @@ var app = new Vue({
         },
         user: {
             username: "",
-            token: ""
+            token: "",
         },
         authError: "",
-        registerSuccess: ""
+        registerSuccess: "",
+        currentRoom: null,
     },
     mounted() {
         if (localStorage.token) {
@@ -54,8 +55,13 @@ var app = new Vue({
         async sendMessage() {
             if (this.newMessage !== "") {
                 try {
-                    const response = await axios.post("http://" + location.host + '/api/create-message',
-                        { message: this.newMessage, type: "user" }, {
+                    const response = await axios.post("http://" + location.host + '/api/messages',
+                        {
+                            message: this.newMessage,
+                            type: "user",
+                            username: this.user.username,
+                            roomId: this.currentRoom,
+                        }, {
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': 'Bearer ' + this.user.token
