@@ -16,7 +16,7 @@
 <body class="bg-light">
     <div id="app">
         <!-- Login view -->
-        <div class="container h-100" v-if="!ws">
+        <div id="home" class="container h-100" v-if="!loggedIn">
             <div class="py-5 text-center">
                 <h2>Go Chat!</h2>
                 <p class="lead">This is app allows you to chat with your friends, and get stock prices with a
@@ -26,7 +26,7 @@
             </div>
             <div class="row">
                 <div class="col-md-4 order-md-1 form">
-                    <h2 class="mb-3">Registered users</h2>
+                    <h3 class="mb-3">Registered users</h3>
                     <div class="row mb-3">
                         <input v-model="loginDetails.username" size="sm" class="form-control username"
                             placeholder="username"></input>
@@ -37,15 +37,15 @@
                     </div>
                     <div class="row mb-3">
                         <div class="input-group-append">
-                            <span class="input-group-text" @click="login">
+                            <button class="input-group-text" @click="login">
                                 Login
-                            </span>
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-md-4 offset-md-4 order-md-2 form">
-                    <h2 class="mb-3">New users</h2>
+                    <h3 class="mb-3">New users</h3>
                     <div class="row mb-3">
                         <input v-model="registrationDetails.email" type="email" class="form-control email"
                             placeholder="email"></input>
@@ -60,9 +60,9 @@
                     </div>
                     <div class="row mb-3">
                         <div class="input-group-append">
-                            <span class="input-group-text" @click="register">
+                            <button class="input-group-text" @click="register">
                                 Register
-                            </span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -77,8 +77,37 @@
             </div>
         </div>
 
+        <!-- Rooms view -->
+        <div id="rooms" class="container h-100" v-if="loggedIn && !inChat">
+            <div class="py-5 text-center">
+                <h2>Rooms</h2>
+                <p class="lead">Join or create a room to chat with friend</p>
+            </div>
+            <div class="row col-md-4 offset-md-8 mb-4">
+                <div class="form-inline">
+                    <div class="form-group mx-sm-1 mb-2">
+                        <input v-model="newRoom" size="sm" class="form-control newRoom" placeholder="New Room"></input>
+                    </div>
+                    <div class="form-group mx-sm-1 mb-2">
+                        <div class="input-group-append">
+                            <button class="input-group-text" @click="createRoom">
+                                Create Room
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <ul class="col-md-8 offset-md-2 list-group">
+                    <li v-for="room in rooms" :key="room.id" class="list-group-item" @click="handleSelectRoom(room)">
+                        {{ room.name }}
+                    </li>
+                </ul>
+            </div>
+        </div>
+
         <!-- Chat view -->
-        <div class="container-fluid h-100" v-if="ws != null">
+        <div id="chat" class="container h-100" v-if="loggedIn && inChat">
             <div class="row justify-content-center h-100">
                 <div class="col-xl-12 chat">
                     <div class="card">
@@ -100,7 +129,7 @@
                                 <textarea v-model="newMessage" name="" class="form-control type_msg"
                                     placeholder="Type your message..." @keyup.enter.exact="sendMessage"></textarea>
                                 <div class="input-group-append">
-                                    <span class="input-group-text send_btn" @click="sendMessage">></span>
+                                    <button class="input-group-text send_btn" @click="sendMessage">></button>
                                 </div>
                             </div>
                         </div>

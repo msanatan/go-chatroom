@@ -25,12 +25,17 @@ var app = new Vue({
             id: 0,
             name: ""
         },
-        newRoom: ""
+        newRoom: "",
+        loggedIn: false,
+        inChat: false,
     },
     mounted() {
-        if (localStorage.token) {
-            this.user.token = localStorage.token;
-            this.connectToWebsocket();
+        if (!this.loggedIn) {
+            if (localStorage.token) {
+                this.user.token = localStorage.token;
+                this.loggedIn = true;
+                this.getRooms();
+            }
         }
     },
     methods: {
@@ -39,8 +44,9 @@ var app = new Vue({
                 const response = await axios.post(`http://${location.host}/login`, this.loginDetails);
                 this.user.username = this.loginDetails.username;
                 this.user.token = response.data.token;
+                this.loggedIn = true;
                 localStorage.token = this.user.token;
-                this.connectToWebsocket();
+                this.getRooms();
             } catch (e) {
                 this.authError = e.response.data.error;
                 console.error(e);
@@ -96,13 +102,20 @@ var app = new Vue({
         async createRoom() {
             if (this.newRoom !== "") {
                 try {
-                    const response = await axios.post(`http://${location.host}/api/rooms`, this.newRoom);
+                    const response = await axios.post(`http://${location.host}/api/rooms`,
+                        {
+                            name: this.newRoom,
+                        },
+                        {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + this.user.token
+                            }
+                        });
                     this.rooms.push(response.data);
                     this.newRoom = "";
                 } catch (e) {
-                    this.authError = e.response.data.error;
                     console.error(e);
-                    console.error(this.authError);
                 }
             }
         },
@@ -115,7 +128,7 @@ var app = new Vue({
                     }
                 });
 
-                this.rooms = response.data;
+                this.rooms = response.data.rooms;
             } catch (e) {
                 console.error(e);
             }
@@ -125,7 +138,7 @@ var app = new Vue({
                 try {
                     // First populate chat with the most recent messages
                     const lastMessages = await this.getLatestMessages();
-                    this.messages = lastMessages.messages ? lastMessages.messages.reverse() : [];
+                    this.messages = lastMessages.messages ? lastMessages.messages : [];
                     console.log('Retrieved latest messages');
 
                     // Then connect to the websocket server
@@ -144,5 +157,10 @@ var app = new Vue({
             let msg = JSON.parse(event.data);
             this.messages.push(msg);
         },
+        handleSelectRoom(room) {
+            this.room = room;
+            this.inChat = true;
+            this.connectToWebsocket();
+        }
     }
 });
