@@ -11,11 +11,11 @@ import (
 )
 
 // GenerateJWT creates a JWT with custom
-var GenerateJWT = func(userID, username, secret string, expiresIn int) (string, error) {
+var GenerateJWT = func(userID int, username, secret string, expiresIn int) (string, error) {
 	claims := jwt.MapClaims{}
 	claims["authorized"] = true
-	claims["sub"] = userID
-	claims["username"] = username
+	claims["sub"] = username
+	claims["userId"] = userID
 	claims["iat"] = time.Now().Unix()
 	if expiresIn != 0 {
 		claims["exp"] = time.Now().Add(time.Minute * time.Duration(expiresIn)).Unix()
@@ -28,7 +28,7 @@ var GenerateJWT = func(userID, username, secret string, expiresIn int) (string, 
 
 // VerifyJWT checks that the JWT is well formed (i.e. it can be parsed) and returns the
 // user ID encoded in the JWT.
-var VerifyJWT = func(token, secret string) (string, string, error) {
+var VerifyJWT = func(token, secret string) (int, string, error) {
 	// Parse JWT
 	jwtToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		//Make sure that the token method conform to "SigningMethodHMAC"
@@ -38,25 +38,27 @@ var VerifyJWT = func(token, secret string) (string, string, error) {
 		return []byte(secret), nil
 	})
 	if err != nil {
-		return "", "", err
+		return 0, "", err
 	}
 
 	claims, ok := jwtToken.Claims.(jwt.MapClaims)
 	if ok && jwtToken.Valid {
-		userID, ok := claims["sub"].(string)
+		// numbers come as float64s in JSON
+		userIDFromJSON, ok := claims["userId"].(float64)
 		if !ok {
-			return "", "", errors.New("Failed to verify JWT and extract the subject")
+			return 0, "", errors.New("Failed to verify JWT and extract the subject")
 		}
+		userID := int(userIDFromJSON)
 
-		username, ok := claims["username"].(string)
+		username, ok := claims["sub"].(string)
 		if !ok {
-			return "", "", errors.New("Failed to verify JWT and extract the username")
+			return 0, "", errors.New("Failed to verify JWT and extract the username")
 		}
 
 		return userID, username, nil
 	}
 
-	return "", "", errors.New("Failed to verify JWT and extract the subject")
+	return 0, "", errors.New("Failed to verify JWT and extract the subject")
 }
 
 // GetTokenFromRequest extracts the token from an HTTP request

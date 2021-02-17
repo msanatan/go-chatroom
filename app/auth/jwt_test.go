@@ -13,14 +13,14 @@ import (
 
 // TestToken is a test token struct
 type TestToken struct {
-	Sub      string `json:"sub"`
-	Username string `json:"username"`
-	Iat      int    `json:"iat"`
+	UserID int    `json:"userId"`
+	Sub    string `json:"sub"`
+	Iat    int    `json:"iat"`
 }
 
 func Test_GenerateJWT(t *testing.T) {
 	secret := "asdf"
-	userID := "myuser"
+	userID := 123
 	username := "myusername"
 
 	at(time.Unix(0, 0), func() {
@@ -39,31 +39,31 @@ func Test_GenerateJWT(t *testing.T) {
 			t.Fatalf("error decoding token %s", err.Error())
 		}
 
-		if jwtClaims.Sub != userID {
-			t.Errorf("expected subject to be %q but found %q", userID, jwtClaims.Sub)
+		if jwtClaims.Sub != username {
+			t.Errorf("expected subject to be %q but found %q", username, jwtClaims.Sub)
 		}
 
-		if jwtClaims.Username != username {
-			t.Errorf("expected username to be %q but found %q", username, jwtClaims.Username)
+		if jwtClaims.UserID != userID {
+			t.Errorf("expected username to be %d but found %d", userID, jwtClaims.UserID)
 		}
 	})
 }
 
 func Test_VerifyJWT(t *testing.T) {
 	secret := "asdf"
-	testJWT := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRob3JpemVkIjp0cnVlLCJpYXQiOjE2MDY4NDQ5MTgsInN1YiI6Im15dXNlciIsInVzZXJuYW1lIjoibXl1c2VybmFtZSJ9.WemZh1uoZeDIOALs6auOinLhKmPpRxplQbJayhxq3Gs"
+	testJWT := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdXRob3JpemVkIjp0cnVlLCJpYXQiOjE2MDY4NDQ5MTgsInN1YiI6Im15dXNlcm5hbWUiLCJ1c2VySWQiOjEyM30.X2CnOokXdtwaLUZmTiGZMh_i7rQhVp1Wy57W_ujBWxw"
 
 	userID, username, err := auth.VerifyJWT(testJWT, secret)
 	if err != nil {
 		t.Fatalf("did not expect an error but received : %q", err.Error())
 	}
 
-	if userID != "myuser" {
-		t.Errorf("expected jwt subject to be %q but got %q", "myuser", userID)
+	if userID != 123 {
+		t.Errorf("expected jwt userId to be %d but got %d", 123, userID)
 	}
 
 	if username != "myusername" {
-		t.Errorf("expected jwt username to be %q but got %q", "myusername", username)
+		t.Errorf("expected jwt subject to be %q but got %q", "myusername", username)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -20,7 +21,13 @@ func (s *Server) GetLastMessages(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.WithField("method", "GetLastMessages")
 
 	vars := mux.Vars(r)
-	roomID := vars["roomId"]
+	roomID, err := strconv.Atoi(vars["roomId"])
+	if err != nil {
+		logger.Errorf("room ID is not valid: %s", err.Error())
+		utils.WriteErrorResponse(w, http.StatusBadRequest,
+			errors.New("you can only get messages from a valid room ID"))
+		return
+	}
 
 	var messages []models.Message
 	tx := s.chatroomDB.DB.Where("room_id = ?", roomID).Order("created_at asc").Limit(50).Preload("User").Find(&messages)
@@ -69,7 +76,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	var message models.Message
 	message.Text = newMessage.Message
 	message.Type = newMessage.Type
-	message.UserID = r.Context().Value("userId").(string)
+	message.UserID = r.Context().Value("userId").(uint)
 	message.RoomID = newMessage.RoomID
 	message.Init()
 
@@ -260,7 +267,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 
 	if loginRequest.Password == user.Password {
 		logger.Debug("login successful, returning token")
-		token, err := auth.GenerateJWT(user.ID, user.Username, s.jwtSecret, 3600)
+		token, err := auth.GenerateJWT(int(user.ID), user.Username, s.jwtSecret, 3600)
 		if err != nil {
 			logger.Errorf("could not generate a JWT: %s", err.Error())
 			utils.WriteErrorResponse(w, http.StatusInternalServerError,
