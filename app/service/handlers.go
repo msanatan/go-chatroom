@@ -76,7 +76,8 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	var message models.Message
 	message.Text = newMessage.Message
 	message.Type = newMessage.Type
-	message.UserID = r.Context().Value("userId").(uint)
+	userIDFromContext := r.Context().Value("userId").(int)
+	message.UserID = uint(userIDFromContext)
 	message.RoomID = newMessage.RoomID
 	message.Init()
 
@@ -87,7 +88,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx := s.chatroomDB.DB.Create(message)
+	tx := s.chatroomDB.DB.Create(&message)
 	if tx.Error != nil {
 		logger.Errorf("failed to create message: %s", tx.Error.Error())
 		utils.WriteErrorResponse(w, http.StatusBadRequest,
@@ -157,7 +158,7 @@ func (s *Server) CreateRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdRoom := s.chatroomDB.DB.Create(room)
+	createdRoom := s.chatroomDB.DB.Create(&room)
 	if createdRoom.Error != nil {
 		logger.Errorf("failed to create room: %s", createdRoom.Error.Error())
 		utils.WriteErrorResponse(w, http.StatusBadRequest,
@@ -227,7 +228,7 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdUser := s.chatroomDB.DB.Create(user)
+	createdUser := s.chatroomDB.DB.Create(&user)
 	if createdUser.Error != nil {
 		logger.Errorf("failed to create user: %s", createdUser.Error.Error())
 		utils.WriteErrorResponse(w, http.StatusBadRequest,
