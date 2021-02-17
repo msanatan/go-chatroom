@@ -107,9 +107,9 @@ func main() {
 	r.HandleFunc("/register", wsServer.CreateUser).Methods("POST")
 
 	protected := r.PathPrefix("/api").Subrouter()
-	protected.HandleFunc("/messages/{roomId}", wsServer.GetLastMessages).Methods("GET")
-	protected.HandleFunc("/create-message", wsServer.CreateMessage).Methods("POST")
-	protected.HandleFunc("/ws", service.ServeWs(wsServer, defaultClientConfig, logger))
+	protected.HandleFunc("/rooms/{roomId}/messages", wsServer.GetLastMessages).Methods("GET")
+	protected.HandleFunc("/messages", wsServer.CreateMessage).Methods("POST")
+	protected.HandleFunc("/ws/{roomId}", service.ServeWs(wsServer, defaultClientConfig, logger))
 	protected.Use(wsServer.IsAuthenticated)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticFiles)))
 
