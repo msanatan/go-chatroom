@@ -54,7 +54,7 @@ func Test_IsValidBotCommand(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		server := service.NewServer(nil, nil, "/", testLogger)
+		server := service.NewServer(nil, nil, "", "/", testLogger)
 		t.Run(tt.name, func(t *testing.T) {
 			result := server.IsValidBotCommand(tt.input.message)
 			if result != tt.output {
@@ -102,7 +102,7 @@ func Test_ExtractCommandAndArgs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		server := service.NewServer(nil, nil, "/", testLogger)
+		server := service.NewServer(nil, nil, "", "/", testLogger)
 		t.Run(tt.name, func(t *testing.T) {
 			command, args := server.ExtractCommandAndArgs(tt.input.message)
 

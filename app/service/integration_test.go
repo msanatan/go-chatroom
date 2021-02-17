@@ -21,7 +21,7 @@ var testClientConfig = &service.ClientConfig{
 }
 
 func Test_ClientsCommunicate(t *testing.T) {
-	wsServer := service.NewServer(nil, nil, "", testLogger)
+	wsServer := service.NewServer(nil, nil, "", "", testLogger)
 	go wsServer.Run()
 
 	if wsServer.ClientCount() != 0 {
