@@ -37,7 +37,7 @@ func (c *ChatroomDB) Migrate() error {
 		return err
 	}
 
-	err := c.DB.AutoMigrate(&Message{})
+	err = c.DB.AutoMigrate(&Message{})
 	if err != nil {
 		return err
 	}

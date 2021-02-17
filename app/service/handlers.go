@@ -21,7 +21,7 @@ func (s *Server) GetLastMessages(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.WithField("method", "GetLastMessages")
 
 	vars := mux.Vars(r)
-	roomID, err := strconv.Atoi(vars["roomId"])
+	roomID, err := strconv.ParseUint(vars["roomId"], 10, 32)
 	if err != nil {
 		logger.Errorf("room ID is not valid: %s", err.Error())
 		utils.WriteErrorResponse(w, http.StatusBadRequest,

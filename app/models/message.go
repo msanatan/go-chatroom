@@ -34,11 +34,11 @@ func (m *Message) Validate() error {
 		return errors.New("message type is missing")
 	}
 
-	if m.UserID == "" {
+	if m.UserID == 0 {
 		return errors.New("user ID is missing")
 	}
 
-	if m.RoomID == "" {
+	if m.RoomID == 0 {
 		return errors.New("room ID is missing")
 	}
 
