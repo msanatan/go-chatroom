@@ -5,7 +5,7 @@ type MessagePayload struct {
 	Message  string `json:"message"`
 	Type     string `json:"type"`
 	Username string `json:"username"`
-	RoomID   string `json:"roomId"`
+	RoomID   uint   `json:"roomId"`
 	Created  string `json:"created"`
 }
 
@@ -19,7 +19,7 @@ type MessagesPayload struct {
 // RoomPayload is the request and response struct for
 // a single room
 type RoomPayload struct {
-	ID   string `json:"id"`
+	ID   uint   `json:"id"`
 	Name string `json:"name"`
 }
 
