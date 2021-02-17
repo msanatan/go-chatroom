@@ -76,7 +76,7 @@ var app = new Vue({
         },
         async getLatestMessages() {
             try {
-                const response = await axios.get("http://" + location.host + '/api/last-messages', {
+                const response = await axios.get(`http://${location.host}/api/rooms/${this.currentRoom}/messages`, {
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + this.user.token
@@ -97,7 +97,7 @@ var app = new Vue({
                     console.log('Retrieved latest messages');
 
                     // Then connect to the websocket server
-                    this.ws = new WebSocket(this.serverUrl + "?bearer=" + this.user.token);
+                    this.ws = new WebSocket(`${this.serverUrl}/${this.currentRoom}?bearer=${this.user.token}`);
                     this.ws.addEventListener('open', (event) => { this.onWebsocketOpen(event) });
                     this.ws.addEventListener('message', (event) => { console.log(event); this.handleNewMessage(event) });
                 } catch (e) {
