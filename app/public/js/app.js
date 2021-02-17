@@ -96,7 +96,7 @@ var app = new Vue({
         async createRoom() {
             if (this.newRoom !== "") {
                 try {
-                    const response = await axios.post(`http://${location.host}/rooms`, this.newRoom);
+                    const response = await axios.post(`http://${location.host}/api/rooms`, this.newRoom);
                     this.rooms.push(response.data);
                     this.newRoom = "";
                 } catch (e) {
@@ -104,6 +104,20 @@ var app = new Vue({
                     console.error(e);
                     console.error(this.authError);
                 }
+            }
+        },
+        async getRooms() {
+            try {
+                const response = await axios.get(`http://${location.host}/api/rooms`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + this.user.token
+                    }
+                });
+
+                this.rooms = response.data;
+            } catch (e) {
+                console.error(e);
             }
         },
         async connectToWebsocket() {
