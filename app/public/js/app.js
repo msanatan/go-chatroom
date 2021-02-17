@@ -4,6 +4,7 @@ var app = new Vue({
         ws: null,
         serverUrl: "ws://localhost:8080/api/ws",
         messages: [],
+        rooms: [],
         newMessage: "",
         loginDetails: {
             username: "",
@@ -20,7 +21,11 @@ var app = new Vue({
         },
         authError: "",
         registerSuccess: "",
-        currentRoom: null,
+        room: {
+            id: 0,
+            name: ""
+        },
+        newRoom: ""
     },
     mounted() {
         if (localStorage.token) {
@@ -31,7 +36,7 @@ var app = new Vue({
     methods: {
         async login() {
             try {
-                const response = await axios.post("http://" + location.host + '/login', this.loginDetails);
+                const response = await axios.post(`http://${location.host}/login`, this.loginDetails);
                 this.user.username = this.loginDetails.username;
                 this.user.token = response.data.token;
                 localStorage.token = this.user.token;
@@ -44,7 +49,7 @@ var app = new Vue({
         },
         async register() {
             try {
-                const response = await axios.post("http://" + location.host + '/register', this.registrationDetails);
+                const response = await axios.post(`http://${location.host}/register`, this.registrationDetails);
                 this.registerSuccess = "Successfully registered! Please log in";
             } catch (e) {
                 this.authError = e.response.data.error;
@@ -55,12 +60,12 @@ var app = new Vue({
         async sendMessage() {
             if (this.newMessage !== "") {
                 try {
-                    const response = await axios.post("http://" + location.host + '/api/messages',
+                    const response = await axios.post(`http://${location.host}/api/messages`,
                         {
                             message: this.newMessage,
                             type: "user",
                             username: this.user.username,
-                            roomId: this.currentRoom,
+                            roomId: this.room.id,
                         }, {
                         headers: {
                             'Content-Type': 'application/json',
@@ -76,7 +81,7 @@ var app = new Vue({
         },
         async getLatestMessages() {
             try {
-                const response = await axios.get(`http://${location.host}/api/rooms/${this.currentRoom}/messages`, {
+                const response = await axios.get(`http://${location.host}/api/rooms/${this.room.id}/messages`, {
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + this.user.token
@@ -88,6 +93,19 @@ var app = new Vue({
                 console.error(e);
             }
         },
+        async createRoom() {
+            if (this.newRoom !== "") {
+                try {
+                    const response = await axios.post(`http://${location.host}/rooms`, this.newRoom);
+                    this.rooms.push(response.data);
+                    this.newRoom = "";
+                } catch (e) {
+                    this.authError = e.response.data.error;
+                    console.error(e);
+                    console.error(this.authError);
+                }
+            }
+        },
         async connectToWebsocket() {
             if (this.user.token !== "") {
                 try {
@@ -97,7 +115,7 @@ var app = new Vue({
                     console.log('Retrieved latest messages');
 
                     // Then connect to the websocket server
-                    this.ws = new WebSocket(`${this.serverUrl}/${this.currentRoom}?bearer=${this.user.token}`);
+                    this.ws = new WebSocket(`${this.serverUrl}/${this.room.id}?bearer=${this.user.token}`);
                     this.ws.addEventListener('open', (event) => { this.onWebsocketOpen(event) });
                     this.ws.addEventListener('message', (event) => { console.log(event); this.handleNewMessage(event) });
                 } catch (e) {
