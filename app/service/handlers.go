@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/msanatan/go-chatroom/app/auth"
 	"github.com/msanatan/go-chatroom/app/models"
 	"github.com/msanatan/go-chatroom/rabbitmq"
@@ -18,8 +19,11 @@ import (
 func (s *Server) GetLastMessages(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.WithField("method", "GetLastMessages")
 
+	vars := mux.Vars(r)
+	roomID := vars["roomId"]
+
 	var messages []models.Message
-	tx := s.chatroomDB.DB.Order("created_at desc").Limit(50).Preload("User").Find(&messages)
+	tx := s.chatroomDB.DB.Where("room_id = ?", roomID).Order("created_at desc").Limit(50).Preload("User").Find(&messages)
 	if tx.Error != nil {
 		logger.Errorf("could not pull latest messages: %s", tx.Error.Error())
 		utils.WriteErrorResponse(w, http.StatusBadRequest,
@@ -33,6 +37,7 @@ func (s *Server) GetLastMessages(w http.ResponseWriter, r *http.Request) {
 			Message:  message.Text,
 			Type:     message.Type,
 			Username: message.User.Username,
+			RoomID:   message.RoomID,
 			Created:  message.CreatedAt.Format(time.RFC1123Z),
 		})
 	}
@@ -65,6 +70,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	message.Text = newMessage.Message
 	message.Type = newMessage.Type
 	message.UserID = r.Context().Value("userId").(string)
+	message.RoomID = newMessage.RoomID
 	message.Init()
 
 	err = message.Validate()
